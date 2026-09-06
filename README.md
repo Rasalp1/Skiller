@@ -170,7 +170,6 @@ Skiller/
     └── SkillerTests/                # Comprehensive test suites:
         ├── SkillerTests.swift           # Core parsing & trigger heuristics tests
         ├── LibraryPresentationTests.swift # Markdown rendering & presentation tests
-        ├── LibraryLayoutTests.swift      # Window sizing & layout constraints
         └── LibraryVisualChecks.swift    # View lifecycle visual checks
 ```
 

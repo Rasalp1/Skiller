@@ -39,6 +39,33 @@ struct SkillerApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var appState = AppState()
 
+    private static let menuBarIcon: NSImage = {
+        let pointSize: CGFloat = 18.0
+        // 1. Try MenuBarIcon.png from main bundle or module bundle
+        if let url = Bundle.main.url(forResource: "MenuBarIcon", withExtension: "png") ??
+                     Bundle.module.url(forResource: "MenuBarIcon", withExtension: "png"),
+           let img = NSImage(contentsOf: url) {
+            img.size = NSSize(width: pointSize, height: pointSize)
+            img.isTemplate = true
+            return img
+        }
+        // 2. Try AppIcon.png
+        if let url = Bundle.main.url(forResource: "AppIcon", withExtension: "png") ??
+                     Bundle.module.url(forResource: "AppIcon", withExtension: "png"),
+           let img = NSImage(contentsOf: url) {
+            let resized = NSImage(size: NSSize(width: pointSize, height: pointSize))
+            resized.lockFocus()
+            img.draw(in: NSRect(x: 0, y: 0, width: pointSize, height: pointSize), from: .zero, operation: .sourceOver, fraction: 1.0)
+            resized.unlockFocus()
+            resized.isTemplate = true
+            return resized
+        }
+        // 3. Fallback to system symbol
+        let fallback = NSImage(systemSymbolName: "square.stack.3d.up", accessibilityDescription: "Skiller") ?? NSImage()
+        fallback.isTemplate = true
+        return fallback
+    }()
+
     var body: some Scene {
         Window("Skiller", id: "library") {
             MainView(appState: appState)
@@ -59,8 +86,10 @@ struct SkillerApp: App {
             }
         }
 
-        MenuBarExtra("Skiller", systemImage: "square.stack.3d.up") {
+        MenuBarExtra {
             MenuBarPopoverView(appState: appState)
+        } label: {
+            Image(nsImage: Self.menuBarIcon)
         }
         .menuBarExtraStyle(.window)
     }

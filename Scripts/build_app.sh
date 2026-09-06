@@ -8,13 +8,17 @@ echo "🔨 Building Skiller in release mode..."
 swift build -c release
 
 APP_NAME="Skiller"
-DIST_DIR="$DIR/dist"
-APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
+TARGET_DIR="/Applications"
+APP_BUNDLE="$TARGET_DIR/$APP_NAME.app"
 CONTENTS_DIR="$APP_BUNDLE/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
 
-echo "📦 Creating macOS App Bundle at $APP_BUNDLE..."
+# Clean up any old dist folder to prevent duplicate apps being indexed by macOS
+rm -rf "$DIR/dist"
+
+echo "📦 Installing $APP_NAME to $APP_BUNDLE..."
+rm -rf "$APP_BUNDLE"
 mkdir -p "$MACOS_DIR"
 mkdir -p "$RESOURCES_DIR"
 
@@ -39,6 +43,12 @@ if [ -f "$DIR/Sources/Skiller/Resources/AppIcon.png" ]; then
     cp "$DIR/Sources/Skiller/Resources/AppIcon.png" "$RESOURCES_DIR/AppIcon.png"
     if [ -d "$APP_BUNDLE/Skiller_Skiller.bundle" ]; then
         cp "$DIR/Sources/Skiller/Resources/AppIcon.png" "$APP_BUNDLE/Skiller_Skiller.bundle/AppIcon.png"
+    fi
+fi
+if [ -f "$DIR/Sources/Skiller/Resources/MenuBarIcon.png" ]; then
+    cp "$DIR/Sources/Skiller/Resources/MenuBarIcon.png" "$RESOURCES_DIR/MenuBarIcon.png"
+    if [ -d "$APP_BUNDLE/Skiller_Skiller.bundle" ]; then
+        cp "$DIR/Sources/Skiller/Resources/MenuBarIcon.png" "$APP_BUNDLE/Skiller_Skiller.bundle/MenuBarIcon.png"
     fi
 fi
 
@@ -74,7 +84,7 @@ cat <<EOF > "$CONTENTS_DIR/Info.plist"
 </plist>
 EOF
 
-echo "✅ Successfully built $APP_BUNDLE!"
+echo "✅ Successfully installed $APP_BUNDLE!"
 
 # Set the Finder kHasCustomIcon flag via NSWorkspace.setIcon
 # This is the critical step that makes the transparent icon float without a squircle.
@@ -90,5 +100,8 @@ if let img = NSImage(contentsOfFile: icnsPath) {
     print(\"   ❌ Could not load icns\")
 }
 "
+
+# Force register with macOS LaunchServices
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$APP_BUNDLE"
 
 echo "🚀 You can launch it using: open \"$APP_BUNDLE\""
