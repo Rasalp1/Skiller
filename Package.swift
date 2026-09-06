@@ -17,7 +17,10 @@ let package = Package(
         .executableTarget(
             name: "SkillsManagerApp",
             dependencies: [],
-            path: "Sources/SkillsManagerApp"
+            path: "Sources/SkillsManagerApp",
+            resources: [
+                .process("Resources")
+            ]
         ),
         .testTarget(
             name: "SkillsManagerAppTests",
