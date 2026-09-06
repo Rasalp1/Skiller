@@ -2,11 +2,15 @@ import SwiftUI
 import AppKit
 
 public enum Theme {
-    public static let accent = Color.accentColor
+    public static let accent = Color(red: 0.22, green: 0.43, blue: 0.86)
     public static let background = Color(NSColor.windowBackgroundColor)
     public static let sidebarBackground = Color(NSColor.controlBackgroundColor)
     public static let cardBackground = Color(NSColor.controlBackgroundColor).opacity(0.6)
     public static let subtleBorder = Color.primary.opacity(0.08)
+    public static let canvas = Color(NSColor.textBackgroundColor)
+    public static let secondarySurface = Color.primary.opacity(0.035)
+    public static let selection = accent.opacity(0.11)
+    public static let pageInset: CGFloat = 28
 
     public static let claudeOrange = Color(red: 0.85, green: 0.45, blue: 0.25)
     public static let codexIndigo = Color(red: 0.35, green: 0.40, blue: 0.88)
@@ -30,6 +34,42 @@ public enum Theme {
         case .manual: return manualBlue
         case .hybrid: return hybridAmber
         }
+    }
+}
+
+struct ComponentIcon: View {
+    let kind: ComponentKind
+    var size: CGFloat = 34
+
+    var body: some View {
+        Image(systemName: kind.icon)
+            .font(.system(size: size * 0.42, weight: .medium))
+            .foregroundStyle(Theme.accent)
+            .frame(width: size, height: size)
+            .background(Theme.accent.opacity(0.085), in: RoundedRectangle(cornerRadius: size * 0.25))
+            .accessibilityHidden(true)
+    }
+}
+
+struct EmptyLibraryView: View {
+    let icon: String
+    let title: String
+    let message: String
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 30, weight: .light))
+                .foregroundStyle(Theme.accent)
+                .frame(width: 68, height: 68)
+                .background(Theme.selection, in: RoundedRectangle(cornerRadius: 18))
+                .padding(.bottom, 4)
+            Text(title).font(.system(size: 18, weight: .semibold))
+            Text(message)
+                .font(.system(size: 13)).foregroundStyle(.secondary)
+                .multilineTextAlignment(.center).lineSpacing(3).frame(maxWidth: 290)
+        }
+        .padding(24).frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

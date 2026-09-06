@@ -1,125 +1,67 @@
 import SwiftUI
+import AppKit
 
-public struct SkillFilesView: View {
-    public let skill: Skill
-    @State private var selectedFile: SkillFileItem?
-    @State private var fileContent: String = ""
+struct PackageFilesView: View {
+    let files: [SkillFileItem]
+    let directoryURL: URL?
+    @State private var selectedFileID: String?
+    @State private var fileContent = ""
+    @State private var previewMessage: String?
 
-    public init(skill: Skill) {
-        self.skill = skill
-    }
+    private var selectedFile: SkillFileItem? { files.first { $0.id == selectedFileID } }
 
-    public var body: some View {
-        HSplitView {
-            // Left: File list
-            VStack(alignment: .leading, spacing: 0) {
-                HStack {
-                    Text("Package Files (\(skill.files.count))")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Button {
-                        ShellLauncher.revealInFinder(url: skill.directoryURL)
-                    } label: {
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Picker("File", selection: $selectedFileID) {
+                    Text("Choose a file").tag(nil as String?)
+                    ForEach(files.filter { !$0.isDirectory }) { file in
+                        Text(file.relativePath).tag(file.id as String?)
+                    }
+                }
+                .labelsHidden().frame(maxWidth: .infinity)
+                if let url = selectedFile?.url ?? directoryURL {
+                    Button { ShellLauncher.revealInFinder(url: url) } label: {
                         Image(systemName: "folder")
                     }
-                    .buttonStyle(.plain)
-                    .help("Reveal Folder in Finder")
+                    .help("Reveal in Finder")
                 }
-                .padding(10)
-                .background(Theme.sidebarBackground)
-
-                Divider()
-
-                List(selection: $selectedFile) {
-                    ForEach(skill.files) { file in
-                        HStack(spacing: 6) {
-                            Image(systemName: file.isDirectory ? "folder" : iconForFile(file.name))
-                                .foregroundColor(file.isDirectory ? .blue : .secondary)
-                            Text(file.relativePath)
-                                .font(.system(size: 12, design: .monospaced))
-                            Spacer()
-                            if !file.isDirectory {
-                                Text(formatBytes(file.sizeInBytes))
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .tag(file)
-                        .contextMenu {
-                            Button("Reveal in Finder") {
-                                ShellLauncher.revealInFinder(url: file.url)
-                            }
-                            Button("Open in Default App") {
-                                NSWorkspace.shared.open(file.url)
-                            }
-                        }
-                    }
-                }
-                .listStyle(.inset)
             }
-            .frame(minWidth: 220, idealWidth: 260)
-
-            // Right: File preview
-            VStack(alignment: .leading, spacing: 0) {
-                if let file = selectedFile {
-                    HStack {
-                        Text(file.relativePath)
-                            .font(.caption)
-                            .fontWeight(.medium)
-                        Spacer()
-                    }
-                    .padding(10)
-                    .background(Theme.sidebarBackground)
-
-                    Divider()
-
-                    ScrollView {
-                        Text(fileContent)
-                            .font(.system(.body, design: .monospaced))
-                            .padding(12)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .textSelection(.enabled)
-                    }
+            .padding(.horizontal, Theme.pageInset).padding(.vertical, 16)
+            Divider()
+            if let file = selectedFile {
+                if let previewMessage {
+                    EmptyLibraryView(icon: "doc", title: file.name, message: previewMessage)
+                } else if file.name.lowercased().hasSuffix(".md") {
+                    MarkdownDocumentView(content: fileContent)
                 } else {
-                    VStack(spacing: 8) {
-                        Spacer()
-                        Image(systemName: "doc.text")
-                            .font(.system(size: 32))
-                            .foregroundColor(.secondary.opacity(0.5))
-                        Text("Select a file to preview")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Spacer()
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    MacTextView(text: .constant(fileContent), isEditable: false)
                 }
-            }
-        }
-        .onChange(of: selectedFile) { _, newFile in
-            if let f = newFile, !f.isDirectory {
-                fileContent = (try? String(contentsOf: f.url, encoding: .utf8)) ?? "(Binary or unreadable file)"
             } else {
-                fileContent = ""
+                EmptyLibraryView(icon: "folder", title: "Explore this package",
+                                 message: "Choose a file to preview its contents.")
             }
         }
-        .onAppear {
-            if let first = skill.files.first(where: { !$0.isDirectory }) {
-                selectedFile = first
+        .onAppear { selectedFileID = files.first { !$0.isDirectory }?.id }
+        .task(id: selectedFile?.url) {
+            guard let file = selectedFile else { return }
+            fileContent = ""
+            previewMessage = nil
+            do {
+                let values = try file.url.resourceValues(forKeys: [.fileSizeKey])
+                guard (values.fileSize ?? 0) <= 1_000_000 else {
+                    previewMessage = "This file is too large to preview. Reveal it in Finder to open it."
+                    return
+                }
+                let content = try String(contentsOf: file.url, encoding: .utf8)
+                guard !content.contains("\u{0000}") else {
+                    previewMessage = "A preview isn’t available for this file. Open it from Finder."
+                    return
+                }
+                fileContent = content
+            } catch {
+                previewMessage = "This file couldn’t be read as text. Reveal it in Finder to inspect it."
             }
         }
-    }
-
-    private func iconForFile(_ name: String) -> String {
-        if name.hasSuffix(".md") { return "doc.richtext" }
-        if name.hasSuffix(".py") || name.hasSuffix(".js") || name.hasSuffix(".sh") || name.hasSuffix(".swift") { return "curlybraces" }
-        if name.hasSuffix(".json") || name.hasSuffix(".yaml") || name.hasSuffix(".yml") || name.hasSuffix(".toml") { return "gearshape" }
-        return "doc.text"
-    }
-
-    private func formatBytes(_ bytes: Int64) -> String {
-        let formatter = ByteCountFormatter()
-        formatter.countStyle = .file
-        return formatter.string(fromByteCount: bytes)
     }
 }

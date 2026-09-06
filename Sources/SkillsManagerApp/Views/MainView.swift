@@ -2,48 +2,46 @@ import SwiftUI
 
 public struct MainView: View {
     @Bindable var appState: AppState
-
-    public init(appState: AppState) {
-        self.appState = appState
-    }
+    public init(appState: AppState) { self.appState = appState }
 
     public var body: some View {
         NavigationSplitView {
             SidebarView(appState: appState)
-                .frame(minWidth: 220, idealWidth: 250)
+                .navigationSplitViewColumnWidth(min: 205, ideal: 225, max: 280)
         } content: {
             SkillListView(appState: appState)
-                .frame(minWidth: 300, idealWidth: 360)
+                .navigationSplitViewColumnWidth(min: 290, ideal: 340, max: 440)
         } detail: {
             if let item = appState.selectedItem {
                 SkillDetailView(appState: appState, item: item)
+                    .id(item.id)
             } else {
-                VStack(spacing: 12) {
-                    Image(systemName: "square.stack.3d.up.fill")
-                        .font(.system(size: 48))
-                        .foregroundColor(.secondary.opacity(0.4))
-                    Text("Select a component to inspect")
-                        .font(.title3)
-                        .foregroundColor(.secondary)
-                    Text("Manage Skills, Agents, Commands, Rules, MCP Servers, and Hooks across Claude, Codex, and Workspaces.")
-                        .font(.caption)
-                        .foregroundColor(.secondary.opacity(0.8))
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                EmptyLibraryView(icon: "square.stack.3d.up", title: "A place for every capability",
+                                 message: "Select a component to explore its instructions, configuration, and files.")
+                    .background(Theme.canvas)
             }
         }
-        .task {
-            await appState.refreshSkills()
+        .navigationSplitViewStyle(.balanced)
+        .tint(Theme.accent)
+        .navigationTitle("Skiller")
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                Button {
+                    Task { await appState.refreshSkills() }
+                } label: {
+                    Label("Refresh Library", systemImage: "arrow.clockwise")
+                }
+                .disabled(appState.isLoading).help("Refresh library (⌘R)")
+            }
         }
-        .alert("Agent Stack Error", isPresented: Binding(
+        .task { await appState.refreshSkills() }
+        .alert("Couldn’t complete the action", isPresented: Binding(
             get: { appState.errorMessage != nil },
             set: { if !$0 { appState.errorMessage = nil } }
         )) {
             Button("OK") { appState.errorMessage = nil }
         } message: {
-            if let msg = appState.errorMessage {
-                Text(msg)
-            }
+            Text(appState.errorMessage ?? "")
         }
     }
 }

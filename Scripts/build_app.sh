@@ -15,7 +15,6 @@ MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
 
 echo "📦 Creating macOS App Bundle at $APP_BUNDLE..."
-rm -rf "$APP_BUNDLE"
 mkdir -p "$MACOS_DIR"
 mkdir -p "$RESOURCES_DIR"
 
@@ -23,9 +22,18 @@ BIN_PATH="$(swift build -c release --show-bin-path)/Skiller"
 cp "$BIN_PATH" "$MACOS_DIR/$APP_NAME"
 chmod +x "$MACOS_DIR/$APP_NAME"
 
+# SwiftPM resolves Bundle.module relative to the application bundle.
+RESOURCE_BUNDLE="$(swift build -c release --show-bin-path)/Skiller_Skiller.bundle"
+ditto "$RESOURCE_BUNDLE" "$APP_BUNDLE/Skiller_Skiller.bundle"
+
 # Copy Icon
 if [ -f "$DIR/Sources/Skiller/Resources/AppIcon.icns" ]; then
     cp "$DIR/Sources/Skiller/Resources/AppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
+    cp "$DIR/Sources/Skiller/Resources/AppIcon.icns" "$APP_BUNDLE/Skiller_Skiller.bundle/AppIcon.icns"
+fi
+if [ -f "$DIR/Sources/Skiller/Resources/AppIcon.png" ]; then
+    cp "$DIR/Sources/Skiller/Resources/AppIcon.png" "$RESOURCES_DIR/AppIcon.png"
+    cp "$DIR/Sources/Skiller/Resources/AppIcon.png" "$APP_BUNDLE/Skiller_Skiller.bundle/AppIcon.png"
 fi
 
 # Create Info.plist
@@ -39,7 +47,9 @@ cat <<EOF > "$CONTENTS_DIR/Info.plist"
     <key>CFBundleIdentifier</key>
     <string>com.skillsmanager.app</string>
     <key>CFBundleName</key>
-    <string>$APP_NAME</string>
+    <string>Skiller</string>
+    <key>CFBundleDisplayName</key>
+    <string>Skiller</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundlePackageType</key>
@@ -53,7 +63,7 @@ cat <<EOF > "$CONTENTS_DIR/Info.plist"
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>LSUIElement</key>
-    <false/>
+    <true/>
 </dict>
 </plist>
 EOF

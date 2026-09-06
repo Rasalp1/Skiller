@@ -1,129 +1,108 @@
 import SwiftUI
 
-public struct SkillEditorView: View {
-    public let skill: Skill
-    public let onSave: ([String: String], String) -> Void
+struct ComponentEditorView: View {
+    @Bindable var appState: AppState
+    let item: StackItem
+    @Environment(\.dismiss) private var dismiss
+    @State private var name: String
+    @State private var description: String
+    @State private var content: String
+    @State private var showingDiscard = false
+    @State private var saveError: String?
 
-    @State private var currentSkillId: String = ""
-    @State private var editName: String = ""
-    @State private var editDescription: String = ""
-    @State private var editOrigin: String = ""
-    @State private var rawBody: String = ""
-    @State private var showSavedNotification = false
-
-    public init(skill: Skill, onSave: @escaping ([String: String], String) -> Void) {
-        self.skill = skill
-        self.onSave = onSave
+    init(appState: AppState, item: StackItem) {
+        self.appState = appState
+        self.item = item
+        _name = State(initialValue: item.name)
+        _description = State(initialValue: item.description)
+        _content = State(initialValue: item.content)
     }
 
-    public var body: some View {
+    private var hasChanges: Bool {
+        name != item.name || description != item.description || content != item.content
+    }
+
+    var body: some View {
         VStack(spacing: 0) {
-            // Metadata bar
-            VStack(spacing: 10) {
-                HStack(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Skill Name")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                        TextField("Name", text: $editName)
-                            .textFieldStyle(.roundedBorder)
-                    }
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Origin")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                        TextField("Origin", text: $editOrigin)
-                            .textFieldStyle(.roundedBorder)
-                    }
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(" ")
-                            .font(.caption2)
-                        Button {
-                            performSave()
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: showSavedNotification ? "checkmark.circle.fill" : "square.and.arrow.down")
-                                Text(showSavedNotification ? "Saved!" : "Save Changes")
-                            }
-                            .frame(minWidth: 110)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(showSavedNotification ? .green : .accentColor)
-                    }
+            HStack(spacing: 12) {
+                ComponentIcon(kind: item.kind)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Edit component").font(.system(size: 17, weight: .semibold))
+                    Text(item.name).font(.system(size: 12)).foregroundStyle(.secondary)
                 }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Description (Used for Agent Auto-Invocation Detection)")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                    TextField("Description", text: $editDescription)
-                        .textFieldStyle(.roundedBorder)
+                Spacer()
+                if hasChanges {
+                    Text("Unsaved changes").font(.system(size: 11)).foregroundStyle(.secondary)
                 }
             }
-            .padding(14)
-            .background(Theme.sidebarBackground)
-
+            .padding(24)
             Divider()
-
-            // Markdown Body Text Editor
-            VStack(alignment: .leading, spacing: 0) {
-                HStack {
-                    Text("SKILL.md Markdown Body")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Text("\(rawBody.components(separatedBy: .newlines).count) lines")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+            VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Name").font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
+                    TextField("Component name", text: $name).textFieldStyle(.roundedBorder)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color(NSColor.controlBackgroundColor))
-
-                Divider()
-
-                MacTextView(text: $rawBody)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Description").font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
+                    TextField("What does this component do?", text: $description, axis: .vertical)
+                        .lineLimit(2...4).textFieldStyle(.roundedBorder)
+                }
             }
-        }
-        .onAppear {
-            if currentSkillId != skill.id {
-                loadSkillData()
+            .padding(.horizontal, 24).padding(.vertical, 20)
+            HStack {
+                Label("Instructions", systemImage: "text.alignleft")
+                Spacer()
+                Text("Markdown · \(content.components(separatedBy: .newlines).count) lines")
             }
-        }
-        .onChange(of: skill.id) { _, newId in
-            if currentSkillId != newId {
-                loadSkillData()
+            .font(.system(size: 11)).foregroundStyle(.secondary)
+            .padding(.horizontal, 24).padding(.vertical, 10)
+            .background(Theme.secondarySurface)
+            Divider()
+            MacTextView(text: $content)
+            Divider()
+            HStack {
+                Text("Changes are saved to the original file.")
+                    .font(.system(size: 11)).foregroundStyle(.secondary)
+                Spacer()
+                Button("Cancel") {
+                    if hasChanges { showingDiscard = true } else { dismiss() }
+                }
+                .keyboardShortcut(.cancelAction)
+                Button("Save Changes", action: save)
+                    .buttonStyle(.borderedProminent).keyboardShortcut("s", modifiers: .command)
+                    .disabled(!hasChanges || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
+            .padding(20)
         }
+        .frame(width: 680, height: 680).tint(Theme.accent)
+        .interactiveDismissDisabled(hasChanges)
+        .alert("Discard your changes?", isPresented: $showingDiscard) {
+            Button("Keep Editing", role: .cancel) {}
+            Button("Discard Changes", role: .destructive) { dismiss() }
+        } message: {
+            Text("Your edits to “\(item.name)” haven’t been saved.")
+        }
+        .alert("Couldn’t save changes", isPresented: Binding(
+            get: { saveError != nil }, set: { if !$0 { saveError = nil } }
+        )) {
+            Button("OK") { saveError = nil }
+        } message: { Text(saveError ?? "") }
     }
 
-    private func loadSkillData() {
-        currentSkillId = skill.id
-        editName = skill.name
-        editDescription = skill.description
-        editOrigin = skill.origin ?? ""
-        rawBody = skill.markdownBody
-    }
-
-    private func performSave() {
-        var fm = skill.frontmatter
-        fm["name"] = editName
-        fm["description"] = editDescription
-        if !editOrigin.isEmpty {
-            fm["origin"] = editOrigin
+    private func save() {
+        // A file watcher may have refreshed or moved this item while the sheet was open.
+        guard let current = appState.items.first(where: { $0.id == item.id }),
+              current.content == item.content,
+              current.frontmatter == item.frontmatter else {
+            saveError = "This component changed outside the editor. Copy your edits before closing, then reopen it to edit the latest version."
+            return
         }
-        onSave(fm, rawBody)
-
-        withAnimation {
-            showSavedNotification = true
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            withAnimation {
-                showSavedNotification = false
-            }
+        if appState.saveItem(current, name: name, description: description,
+                             frontmatter: current.frontmatter, content: content) {
+            dismiss()
+        } else {
+            saveError = appState.errorMessage
+            appState.errorMessage = nil
         }
     }
 }

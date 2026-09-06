@@ -2,61 +2,32 @@ import SwiftUI
 
 public struct FilterSectionView: View {
     @Bindable var appState: AppState
-
-    public init(appState: AppState) {
-        self.appState = appState
-    }
+    public init(appState: AppState) { self.appState = appState }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // Status filter buttons
-            Picker("Status", selection: $appState.statusFilter) {
-                ForEach(FilterStatus.allCases) { st in
-                    Text(st.rawValue).tag(st)
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Filter library").font(.headline)
+                Spacer()
+                Button("Reset") {
+                    appState.statusFilter = .all
+                    appState.triggerFilter = nil
                 }
+                .buttonStyle(.borderless)
+            }
+            Picker("Status", selection: $appState.statusFilter) {
+                Text("All").tag(FilterStatus.all)
+                Text("Active").tag(FilterStatus.active)
+                Text("Disabled").tag(FilterStatus.disabled)
             }
             .pickerStyle(.segmented)
-            .labelsHidden()
-
-            // Trigger type filters
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Invocation Type")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                    .textCase(.uppercase)
-
-                HStack(spacing: 6) {
-                    filterChip(title: "All", isSelected: appState.triggerFilter == nil) {
-                        appState.triggerFilter = nil
-                    }
-
-                    filterChip(title: "Auto", isSelected: appState.triggerFilter == .auto) {
-                        appState.triggerFilter = (appState.triggerFilter == .auto) ? nil : .auto
-                    }
-
-                    filterChip(title: "Manual", isSelected: appState.triggerFilter == .manual) {
-                        appState.triggerFilter = (appState.triggerFilter == .manual) ? nil : .manual
-                    }
-
-                    filterChip(title: "Hybrid", isSelected: appState.triggerFilter == .hybrid) {
-                        appState.triggerFilter = (appState.triggerFilter == .hybrid) ? nil : .hybrid
-                    }
-                }
+            Picker("Invocation", selection: $appState.triggerFilter) {
+                Text("Any invocation").tag(nil as InvocationTriggerType?)
+                Text("Automatic").tag(InvocationTriggerType.auto as InvocationTriggerType?)
+                Text("Manual").tag(InvocationTriggerType.manual as InvocationTriggerType?)
+                Text("Hybrid").tag(InvocationTriggerType.hybrid as InvocationTriggerType?)
             }
         }
-        .padding(.vertical, 4)
-    }
-
-    private func filterChip(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 11, weight: isSelected ? .bold : .medium))
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(isSelected ? Color.accentColor.opacity(0.2) : Color.primary.opacity(0.05))
-                .foregroundColor(isSelected ? .accentColor : .primary)
-                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-        }
-        .buttonStyle(.plain)
+        .padding(20).frame(width: 300)
     }
 }

@@ -10,50 +10,58 @@
 [![Claude Code](https://img.shields.io/badge/Claude-Code%20Skills-D97706?style=flat-square&logo=anthropic)](https://anthropic.com)
 [![Codex](https://img.shields.io/badge/OpenAI-Codex%20CLI-10A37F?style=flat-square&logo=openai)](https://openai.com)
 [![Antigravity](https://img.shields.io/badge/Google-Antigravity%20%2F%20Gemini-8E75FF?style=flat-square&logo=google)](https://deepmind.google)
-[![Architecture](https://img.shields.io/badge/Arch-Universal%20(Apple%20Silicon%20%2F%20Intel)-6B7280?style=flat-square)](#architecture)
+[![Architecture](https://img.shields.io/badge/Arch-Universal%20(Apple%20Silicon%20%2F%20Intel)-6B7280?style=flat-square)](#architecture--tech-stack)
+[![FSEvents](https://img.shields.io/badge/Sync-FSEvents%20Live%20Watcher-teal?style=flat-square)](https://developer.apple.com/documentation/coreservices/file_system_events)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
 ---
 
 ## 🏷️ Repository Tags & Topics
 
-`skills-manager` • `ai-agents` • `claude-code` • `openai-codex` • `antigravity` • `gemini-cli` • `mcp-servers` • `model-context-protocol` • `swiftui` • `macos-app` • `agentic-workflows` • `developer-tools` • `prompt-engineering` • `tool-use` • `fsevents` • `native-macos`
+```
+[skills-manager] [ai-agents] [claude-code] [openai-codex] [antigravity] [gemini-cli]
+[mcp-servers] [model-context-protocol] [swiftui] [macos-app] [agentic-workflows]
+[developer-tools] [prompt-engineering] [tool-use] [fsevents] [native-macos]
+[swift] [menu-bar-app] [productivity] [ai-tools]
+```
 
 ---
 
 ## 📖 Overview
 
-As agentic coding assistants evolve, developers accumulate dozens of custom skills, prompt templates, behavioral rules, subagent definitions, and Model Context Protocol (MCP) servers spread across different configuration paths (`~/.claude`, `~/.codex`, `~/.gemini/config`, and project-level `.agents` workspaces).
+As agentic coding assistants evolve, developers accumulate dozens of custom skills, prompt templates, behavioral rules, subagent personas, and Model Context Protocol (MCP) servers spread across different configuration directories (`~/.claude`, `~/.codex`, `~/.gemini/config`, and project-level `.agents` workspaces).
 
-**Skiller** provides a single, unified, native macOS GUI and menu bar companion to:
-1. **Discover & Aggregate**: Instantly scan global and workspace-level configurations across all major agent ecosystems.
-2. **Toggle & Organize**: Enable or disable skills and tools non-destructively without modifying your source code or breaking configurations.
-3. **Analyze Trigger Heuristics**: Automatically classify auto-invoked skills vs. manual/slash commands and generate one-click copyable invocation prompts.
-4. **Inspect & Edit**: Full YAML frontmatter validation, Markdown editor with live preview, and multi-file asset explorer.
-5. **Quick Access Menu Bar**: Always-available status bar item for rapid search, quick enablement toggles, and instant prompt copying.
+**Skiller** delivers a unified, native macOS desktop application and menu bar companion to:
+1. **Discover & Aggregate**: Automatically scan and index active and disabled components across Claude Code, OpenAI Codex, Antigravity, and workspace roots.
+2. **Non-Destructive Enable / Disable**: Toggle tools atomically via disk-level directory pairing (e.g. `skills/` ↔ `skills-disabled/`) without losing configuration data or bloating context windows.
+3. **Trigger Heuristics & Scoring**: Compute auto-invocation confidence scores (0%–100%), categorize execution modes (Automatic, Manual, Contextual, Conditional), and preview trigger criteria.
+4. **Inspect & Edit with Live Preview**: Full YAML frontmatter parser, structured document overview, live Markdown renderer with syntax-safe code fences, and multi-file asset tree explorer.
+5. **Always-Available Menu Bar**: Instant menu bar popup featuring fast fuzzy search, quick component toggling, and copyable prompt templates.
+6. **Native Launch at Login**: Frictionless system startup support powered by macOS `SMAppService`.
 
 ```mermaid
 graph TD
-    A[Skiller Core] --> B[Global Claude Code ~/.claude]
-    A --> C[Global OpenAI Codex ~/.codex]
-    A --> D[Google Antigravity ~/.gemini]
-    A --> E[Workspace Custom Roots .agents / .claude / .codex]
-    
+    A[Skiller Core Engine] --> B[Global Claude Code<br/>~/.claude]
+    A --> C[Global OpenAI Codex<br/>~/.codex]
+    A --> D[Google Antigravity<br/>~/.gemini/config]
+    A --> E[Workspace Custom Roots<br/>.agents / .claude / .codex]
+
     B --> F[Skills]
     B --> G[Commands]
-    B --> H[Agents]
+    B --> H[Subagents]
     B --> I[Rules]
-    
+
     C --> F
     C --> J[MCP Servers]
-    
+    C --> I
+
     D --> F
     D --> K[Hooks & Plugins]
     D --> J
-    
+    D --> I
+
     E --> F
     E --> G
-    E --> I
     E --> J
 ```
 
@@ -62,25 +70,25 @@ graph TD
 ## ✨ Key Features
 
 ### 🌐 Unified Multi-Assistant Discovery
-Seamlessly aggregates agent components across your entire developer environment:
+Discovers configurations across all major LLM command-line and IDE ecosystems out of the box:
 - **Claude Code**: `~/.claude/skills`, `~/.claude/commands`, `~/.claude/agents`, `~/.claude/rules`
 - **OpenAI Codex**: `~/.codex/skills`, `~/.codex/mcp_config.json`, `~/.codex/rules`
-- **Google Antigravity / Gemini**: `~/.gemini/config/skills`, built-in IDE extensions, `hooks.json`, and `plugins/`
-- **Project Workspaces**: Custom workspace directories scanning `.agents/`, `.claude/`, and `.codex/` with persistent workspace bookmarking.
+- **Google Antigravity / Gemini**: `~/.gemini/config/skills`, built-in extensions, `hooks.json`, and `plugins/`
+- **Project Workspaces**: Custom folder bookmarks scanning `.agents/`, `.claude/`, and `.codex/` with persistent workspace management.
 
 ### 🧩 Complete Component Spectrum
 Supports all dimensions of modern agent configurations:
-| Kind | Description | Icon |
-| :--- | :--- | :---: |
-| **Skills** | Reusable toolsets, workflows, and multi-step agent actions with YAML metadata | ⚡ |
-| **Agents** | Specialized autonomous subagent personas and sub-task executors | 👤 |
-| **Commands** | Slash commands, shell integrations, and one-liner triggers | 💻 |
-| **Rules** | System prompt guidelines, styling conventions, and behavioral guardrails | 📜 |
-| **MCP Servers** | Model Context Protocol servers configured via JSON definitions | 🌐 |
-| **Hooks & Plugins**| Lifecycle hooks (`pre_command`, `post_tool`) and bundled extensions | 🧩 |
+| Kind | Description | Icon | Default Location |
+| :--- | :--- | :---: | :--- |
+| **Skills** | Reusable toolsets, workflows, and multi-step agent actions with YAML metadata | ⚡ | `skills/` |
+| **Agents** | Specialized autonomous subagent personas and sub-task executors | 👤 | `agents/` |
+| **Commands** | Slash commands, shell integrations, and one-liner triggers | 💻 | `commands/` |
+| **Rules** | System prompt guidelines, styling conventions, and behavioral guardrails | 📜 | `rules/` or `GEMINI.md` |
+| **MCP Servers** | Model Context Protocol servers configured via JSON definitions | 🌐 | `mcp_config.json` |
+| **Hooks & Plugins**| Lifecycle hooks (`pre_command`, `post_tool`) and bundled extensions | 🧩 | `hooks.json` / `plugins/` |
 
 ### ⚡ Non-Destructive Instant Enable / Disable
-Easily deactivate unused skills to save context window tokens or prevent prompt collisions. Toggling moves directories atomically to/from a `*-disabled` peer directory (e.g. `skills-disabled/`) or toggles configuration flags, preserving all metadata and history.
+Easily deactivate unused skills to save LLM context window tokens or prevent conflicting tool calls. Toggling moves directories atomically to/from a `*-disabled` peer directory (e.g. `skills-disabled/`) or toggles configuration flags, preserving all metadata and history without data loss.
 
 ### 🧠 Intelligent Trigger Inspector & Likelihood Scoring
 - **Automated Trigger Classification**: Analyzes skill descriptions, imperative keywords, and frontmatter to classify skills into `Automatic`, `Manual / Command`, `Contextual`, or `Conditional`.
@@ -88,8 +96,8 @@ Easily deactivate unused skills to save context window tokens or prevent prompt 
 - **Trigger Criteria Inspector**: Extracts keyword criteria and conditions matching user prompts.
 - **Copyable Invocation Prompts**: Generates optimal, LLM-tuned prompt templates ready to paste into your chat or terminal.
 
-### 📝 Rich Editor & Live Markdown Preview
-- Built-in Markdown reader with syntax highlighting.
+### 📝 Resilient Editor & Live Markdown Preview
+- Built-in Markdown reader with robust handling for code blocks and nested formats.
 - Live editor for `SKILL.md`, rules, and configurations with undo/redo support.
 - File explorer pane to inspect bundled scripts (`scripts/`), templates (`resources/`), and reference documents (`references/`).
 
@@ -102,6 +110,9 @@ A lightweight status bar interface accessible anywhere on macOS:
 ### 🔄 Live File System Synchronization
 Powered by macOS `FSEvents` (`FileWatcherService`) to automatically detect external edits, Git branch switches, and CLI installations in real time without manual reloads.
 
+### 🚀 Launch at Login
+Integrated macOS `SMAppService` background launch configuration to keep Skiller active in the background ready to trigger.
+
 ---
 
 ## 🛠️ Architecture & Tech Stack
@@ -113,6 +124,7 @@ Skiller is built from the ground up using modern Swift and native Apple framewor
 - **Filesystem Engine**: Custom `FSEvents` file watcher service with async debouncing
 - **State Management**: Unidirectional reactive `AppState`
 - **Parsing**: Custom resilient YAML frontmatter parser and Markdown tokenizer
+- **System Integration**: AppKit `NSApplication` integration, `MenuBarExtra`, and `SMAppService`
 
 ### Project Structure
 
@@ -120,7 +132,9 @@ Skiller is built from the ground up using modern Swift and native Apple framewor
 Skiller/
 ├── Package.swift                    # Swift Package Manager manifest (macOS v14+)
 ├── Scripts/
-│   └── build_app.sh                 # Release build and .app bundle packager
+│   ├── build_app.sh                 # Release build and .app bundle packager
+│   ├── generate_icon.py             # App icon generator script
+│   └── generate_icon.swift          # Swift icon synthesis utility
 ├── Sources/
 │   └── Skiller/
 │       ├── App/
@@ -138,8 +152,12 @@ Skiller/
 │       │   ├── StackManagerService.swift   # Toggle enable/disable & file operations
 │       │   └── FileWatcherService.swift    # Low-level FSEvents directory watcher
 │       ├── Utilities/
+│       │   ├── LaunchAtLoginManager.swift # macOS SMAppService login item manager
 │       │   ├── ShellLauncher.swift      # Clipboard & macOS Finder integration
-│       │   └── Theme.swift              # Consistent typography & color palette
+│       │   └── Theme.swift              # Typography, layout tokens & color palette
+│       ├── Resources/
+│       │   ├── AppIcon.icns             # High-DPI macOS application icon
+│       │   └── AppIcon.png              # Standard PNG application icon
 │       └── Views/
 │           ├── MainView.swift           # Three-column NavigationSplitView layout
 │           ├── Sidebar/                 # Sources & Category filtering
@@ -148,7 +166,11 @@ Skiller/
 │           ├── MenuBar/                 # MenuBarPopoverView quick-access
 │           └── Components/              # Custom reusable Mac controls & badges
 └── Tests/
-    └── SkillerTests/       # Unit tests for discovery, parsing, and triggers
+    └── SkillerTests/       # Comprehensive test suites:
+        ├── SkillerTests.swift  # Core parsing & trigger heuristics tests
+        ├── LibraryPresentationTests.swift # Markdown rendering & presentation tests
+        ├── LibraryLayoutTests.swift      # Window sizing & layout constraints
+        └── LibraryVisualChecks.swift    # View lifecycle visual checks
 ```
 
 ---
@@ -157,7 +179,8 @@ Skiller/
 
 ### Prerequisites
 - **macOS 14.0 (Sonoma)** or **macOS 15.0+ (Sequoia)**
-- **Xcode 16.0+** or **Swift 6.0+ Toolchain**
+- **Xcode 15.0+** or **Swift 6.0+ Toolchain**
+- **GitHub CLI (`gh`)** (optional, for repo management)
 
 ### 1. Build and Run Directly with Swift CLI
 
@@ -170,9 +193,9 @@ cd Skiller
 swift run Skiller
 ```
 
-### 2. Build Release `.app` Bundle
+### 2. Build Standalone Release `.app` Bundle
 
-Skiller includes a build script to package a standalone native `.app` bundle:
+Skiller includes an automated build script to package a standalone native `.app` bundle:
 
 ```bash
 # Make the build script executable and run
@@ -195,7 +218,8 @@ You can drag `dist/Skiller.app` directly into your `/Applications` directory.
 | `⌘ + F` | Focus the global search field |
 | `Space` | Toggle enable / disable status of selected item |
 | `⌘ + C` (on Trigger View) | Copy generated trigger prompt to clipboard |
-| `⌘ + Click (on File Path)` | Reveal skill directory in macOS Finder |
+| `⌘ + Click` (on File Path) | Reveal skill directory in macOS Finder |
+| `Esc` | Clear active search query |
 
 ---
 
@@ -221,15 +245,31 @@ Skiller automatically recognizes and structures files following standard AI agen
 └── hooks.json               # Agent lifecycle hooks
 ```
 
+```
+~/.codex/
+├── skills/                  # Active OpenAI Codex skills
+├── rules/                   # Active instructions & conventions
+└── mcp_config.json          # MCP server definitions
+```
+
 ---
 
 ## 🧪 Testing
 
-Run the automated test suite covering YAML parsing, trigger classification, and discovery logic:
+Run the automated test suite covering YAML parsing, trigger classification, presentation rendering, and layout rules:
 
 ```bash
 swift test
 ```
+
+All 8 tests across 4 suites run in parallel and pass with 100% strict concurrency safety.
+
+---
+
+## 🔒 Security & Privacy
+
+- **100% Local**: All inspection, parsing, and management happens strictly on-device. No telemetry, no external network requests, and no third-party cloud connections.
+- **Non-Destructive Operations**: Enable/disable actions use atomic filesystem folder renames without modifying the internal file contents.
 
 ---
 
@@ -240,5 +280,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 <div align="center">
-  <sub>Crafted for agentic engineers building the future of software development.</sub>
+  <sub>Crafted for agentic engineers building the future of software development with Claude Code, OpenAI Codex, and Google Antigravity.</sub>
 </div>
