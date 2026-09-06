@@ -39,7 +39,7 @@ public struct MacTextView: NSViewRepresentable {
         textView.isVerticallyResizable = true
         textView.isHorizontallyResizable = false
         textView.autoresizingMask = [.width]
-        textView.textContainerInset = NSSize(width: 8, height: 8)
+        textView.textContainerInset = NSSize(width: 24, height: 20)
 
         textView.font = font
         textView.textColor = NSColor.textColor
@@ -49,6 +49,9 @@ public struct MacTextView: NSViewRepresentable {
         textView.isSelectable = true
         textView.allowsUndo = true
         textView.isRichText = false
+        textView.isAutomaticQuoteSubstitutionEnabled = false
+        textView.isAutomaticDashSubstitutionEnabled = false
+        textView.isAutomaticTextReplacementEnabled = false
         textView.importsGraphics = false
         textView.usesFontPanel = false
         textView.usesRuler = false
@@ -61,6 +64,7 @@ public struct MacTextView: NSViewRepresentable {
     }
 
     public func updateNSView(_ nsView: NSScrollView, context: Context) {
+        context.coordinator.parent = self
         guard let textView = nsView.documentView as? NSTextView else { return }
 
         // Only update textView string if text changed externally to avoid cursor jumps

@@ -148,7 +148,8 @@ public final class AppState {
         }
     }
 
-    public func saveItem(_ item: StackItem, name: String, description: String, frontmatter: [String: String], content: String) {
+    @discardableResult
+    public func saveItem(_ item: StackItem, name: String, description: String, frontmatter: [String: String], content: String) -> Bool {
         do {
             let updated = try stackManagerService.saveItem(
                 item: item,
@@ -160,9 +161,19 @@ public final class AppState {
             if let idx = items.firstIndex(where: { $0.id == item.id }) {
                 items[idx] = updated
             }
+            return true
         } catch {
             errorMessage = "Failed to save item: \(error.localizedDescription)"
+            return false
         }
+    }
+
+    public func resetFilters() {
+        searchText = ""
+        selectedKind = nil
+        selectedSourceId = nil
+        statusFilter = .all
+        triggerFilter = nil
     }
 
     public func toggleInvocationMode(_ item: StackItem) {

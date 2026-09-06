@@ -1,359 +1,297 @@
 import SwiftUI
+import AppKit
 
 public enum StackDetailTab: String, CaseIterable, Identifiable {
-    case editor = "Instructions & Content"
-    case metadata = "Metadata & Attributes"
-    case files = "Package Files"
-
+    case overview = "Overview"
+    case instructions = "Instructions"
+    case files = "Files"
+    case metadata = "Info"
     public var id: String { rawValue }
-
-    public var icon: String {
-        switch self {
-        case .editor: return "pencil.line"
-        case .metadata: return "slider.horizontal.3"
-        case .files: return "folder"
-        }
-    }
 }
 
 public struct SkillDetailView: View {
     @Bindable var appState: AppState
     public let item: StackItem
-
-    @State private var selectedTab: StackDetailTab = .editor
-    @State private var editName: String = ""
-    @State private var editDescription: String = ""
-    @State private var editContent: String = ""
-    @State private var copiedPromptToast = false
-    @State private var showSavedNotification = false
+    @State private var selectedTab: StackDetailTab = .overview
+    @State private var isEditing = false
+    @State private var copiedPrompt = false
+    @State private var copyResetTask: Task<Void, Never>?
 
     public init(appState: AppState, item: StackItem) {
         self.appState = appState
         self.item = item
     }
 
-    public init(appState: AppState, skill: Skill) {
-        self.appState = appState
-        self.item = StackItem(
-            id: skill.id,
-            kind: .skill,
-            name: skill.name,
-            description: skill.description,
-            sourceId: skill.sourceId,
-            sourceKind: skill.sourceKind,
-            sourceName: skill.sourceName,
-            isEnabled: skill.isEnabled,
-            fileURL: skill.skillFileURL,
-            directoryURL: skill.directoryURL,
-            content: skill.markdownBody,
-            frontmatter: skill.frontmatter,
-            metadata: ["origin": skill.origin ?? ""],
-            invocationType: .auto,
-            lastModified: skill.lastModified,
-            files: skill.files
-        )
-    }
-
     public var body: some View {
         VStack(spacing: 0) {
-            // Top Header Bar
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .center) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 8) {
-                            if item.kind == .command {
-                                Text("/\(item.name)")
-                                    .font(.system(size: 20, weight: .bold, design: .monospaced))
-                                    .foregroundColor(.blue)
-                            } else {
-                                Text(item.name)
-                                    .font(.system(size: 20, weight: .bold))
-                            }
-
-                            KindBadge(kind: item.kind)
-                            SourceBadge(kind: item.sourceKind)
-                            StatusPill(isEnabled: item.isEnabled)
-                        }
-
-                        if !item.description.isEmpty {
-                            Text(item.description)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-
-                    Spacer()
-
-                    // Quick Toggle Switch
-                    HStack(spacing: 8) {
-                        Text(item.isEnabled ? "Active" : "Disabled")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        Toggle("", isOn: Binding(
-                            get: { item.isEnabled },
-                            set: { _ in appState.toggleItem(item) }
-                        ))
-                        .toggleStyle(.switch)
-                        .labelsHidden()
-                    }
-                }
-
-                // Action Bar
-                HStack(spacing: 12) {
-                    if item.kind == .command {
-                        ActionIconButton(
-                            icon: copiedPromptToast ? "checkmark" : "terminal",
-                            title: copiedPromptToast ? "Copied!" : "Copy /\(item.name)",
-                            tint: copiedPromptToast ? .green : .blue
-                        ) {
-                            ShellLauncher.copyToClipboard("/\(item.name)")
-                            copiedPromptToast = true
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                copiedPromptToast = false
-                            }
-                        }
-                    } else {
-                        ActionIconButton(
-                            icon: copiedPromptToast ? "checkmark" : "doc.on.clipboard",
-                            title: copiedPromptToast ? "Copied!" : "Copy Name / Prompt",
-                            tint: copiedPromptToast ? .green : .accentColor
-                        ) {
-                            let prompt = "Use \(item.name): \(item.description)"
-                            ShellLauncher.copyToClipboard(prompt)
-                            copiedPromptToast = true
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                copiedPromptToast = false
-                            }
-                        }
-                    }
-
-                    if let targetURL = item.fileURL ?? item.directoryURL {
-                        ActionIconButton(icon: "folder", title: "Finder", tint: .secondary) {
-                            ShellLauncher.revealInFinder(url: targetURL)
-                        }
-                    }
-
-                    Spacer()
-
-                    Button {
-                        performSave()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: showSavedNotification ? "checkmark.circle.fill" : "square.and.arrow.down")
-                            Text(showSavedNotification ? "Saved!" : "Save Changes")
-                        }
-                        .frame(minWidth: 100)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(showSavedNotification ? .green : .accentColor)
-                }
-            }
-            .padding(16)
-            .background(Theme.sidebarBackground)
-
-            Divider()
-
-            // Nature Callout Banner
-            if item.kind == .command {
-                HStack(spacing: 8) {
-                    Image(systemName: "hand.tap.fill")
-                        .foregroundColor(.blue)
-                    Text("Slash Command: Manually invoked in chat using")
-                        .font(.caption)
-                    Text("/\(item.name)")
-                        .font(.system(.caption, design: .monospaced, weight: .bold))
-                        .foregroundColor(.blue)
-                    Spacer()
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 6)
-                .background(Color.blue.opacity(0.08))
-            } else if item.kind == .skill {
-                HStack(spacing: 8) {
-                    Image(systemName: "bolt.badge.automatic.fill")
-                        .foregroundColor(.green)
-                    Text("Autonomous Skill: Automatically loaded by Claude/Codex when your prompt matches the skill description.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Spacer()
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 6)
-                .background(Color.green.opacity(0.08))
-            }
-
-            Divider()
-
-            // Custom Segmented Tab Bar
-            HStack(spacing: 12) {
+            header
+            HStack(spacing: 24) {
                 ForEach(availableTabs) { tab in
-                    Button {
-                        selectedTab = tab
-                    } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: tab.icon)
-                            Text(tab.rawValue)
-                            if tab == .files && !item.files.isEmpty {
-                                Text("(\(item.files.count))")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
+                    Button { selectedTab = tab } label: {
+                        VStack(spacing: 12) {
+                            HStack(spacing: 5) {
+                                Text(tab.rawValue)
+                                if tab == .files {
+                                    Text("\(item.files.count)")
+                                        .font(.system(size: 10)).foregroundStyle(.secondary)
+                                }
                             }
+                            .font(.system(size: 12, weight: selectedTab == tab ? .semibold : .regular))
+                            .foregroundStyle(selectedTab == tab ? Theme.accent : .secondary)
+                            Rectangle().fill(selectedTab == tab ? Theme.accent : .clear).frame(height: 2)
                         }
-                        .font(.system(size: 12, weight: selectedTab == tab ? .semibold : .regular))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(selectedTab == tab ? Color.accentColor.opacity(0.15) : Color.clear)
-                        .foregroundColor(selectedTab == tab ? .accentColor : .primary)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityAddTraits(selectedTab == tab ? .isSelected : [])
                 }
-                Spacer()
+                Spacer(minLength: 0)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 6)
-            .background(Color(NSColor.controlBackgroundColor))
-
+            .padding(.horizontal, Theme.pageInset).padding(.top, 16)
             Divider()
-
-            // Tab Content
-            switch selectedTab {
-            case .editor:
-                VStack(spacing: 0) {
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Name")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                            TextField("Name", text: $editName)
-                                .textFieldStyle(.roundedBorder)
-                        }
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Description")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                            TextField("Description", text: $editDescription)
-                                .textFieldStyle(.roundedBorder)
-                        }
+            Group {
+                switch selectedTab {
+                case .overview: overview
+                case .instructions:
+                    if item.isEditableDocument {
+                        MarkdownDocumentView(content: item.content)
+                    } else {
+                        MacTextView(text: .constant(item.content), isEditable: false)
                     }
-                    .padding(12)
-                    .background(Color(NSColor.controlBackgroundColor).opacity(0.6))
-
-                    Divider()
-
-                    MacTextView(text: $editContent)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                case .files: PackageFilesView(files: item.files, directoryURL: item.directoryURL)
+                case .metadata: information
                 }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            Divider()
+            HStack(spacing: 6) {
+                Image(systemName: "doc.text")
+                Text(item.fileURL?.lastPathComponent ?? "Configuration").lineLimit(1)
+                Spacer()
+                Text("Modified \(item.lastModified.formatted(date: .abbreviated, time: .omitted))")
+            }
+            .font(.system(size: 10)).foregroundStyle(.secondary)
+            .padding(.horizontal, Theme.pageInset).padding(.vertical, 12)
+        }
+        .background(Theme.canvas)
+        .sheet(isPresented: $isEditing) {
+            ComponentEditorView(appState: appState, item: item)
+        }
+        .onDisappear { copyResetTask?.cancel() }
+        .onChange(of: item.files.isEmpty) { _, isEmpty in
+            if isEmpty && selectedTab == .files { selectedTab = .overview }
+        }
+    }
 
-            case .metadata:
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 14) {
-                        if !item.frontmatter.isEmpty {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("YAML Frontmatter")
-                                    .font(.caption)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.secondary)
-
-                                Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 6) {
-                                    ForEach(item.frontmatter.sorted(by: { $0.key < $1.key }), id: \.key) { k, v in
-                                        GridRow {
-                                            Text(k)
-                                                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                                .foregroundColor(.secondary)
-                                            Text(v)
-                                                .font(.system(size: 12, design: .monospaced))
-                                                .textSelection(.enabled)
-                                        }
-                                    }
-                                }
-                            }
-                            .cardContainer()
-                        }
-
-                        if !item.metadata.isEmpty {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Component Configuration")
-                                    .font(.caption)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.secondary)
-
-                                Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 6) {
-                                    ForEach(item.metadata.sorted(by: { $0.key < $1.key }), id: \.key) { k, v in
-                                        GridRow {
-                                            Text(k)
-                                                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                                .foregroundColor(.secondary)
-                                            Text(v)
-                                                .font(.system(size: 12, design: .monospaced))
-                                                .textSelection(.enabled)
-                                        }
-                                    }
-                                }
-                            }
-                            .cardContainer()
-                        }
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            HStack {
+                Label(item.sourceName, systemImage: item.sourceKind.icon)
+                Image(systemName: "chevron.right").font(.system(size: 8, weight: .semibold))
+                Text(item.kind.singularName)
+                Spacer()
+                Menu {
+                    Button("Copy Name") { ShellLauncher.copyToClipboard(item.name) }
+                    if let url = item.fileURL ?? item.directoryURL {
+                        Button("Copy Path") { ShellLauncher.copyToClipboard(url.path) }
+                        Button("Reveal in Finder") { ShellLauncher.revealInFinder(url: url) }
+                        Button("Open in Default App") { NSWorkspace.shared.open(url) }
                     }
-                    .padding(16)
+                } label: {
+                    Image(systemName: "ellipsis.circle").font(.system(size: 16))
                 }
-
-            case .files:
-                if let dir = item.directoryURL {
-                    SkillFilesView(skill: Skill(
-                        id: item.id,
-                        directoryName: dir.lastPathComponent,
-                        name: item.name,
-                        sourceId: item.sourceId,
-                        sourceKind: item.sourceKind,
-                        sourceName: item.sourceName,
-                        directoryURL: dir,
-                        skillFileURL: item.fileURL ?? dir.appendingPathComponent("SKILL.md"),
-                        isEnabled: item.isEnabled,
-                        rawContent: item.content,
-                        frontmatter: item.frontmatter,
-                        markdownBody: item.content,
-                        triggerAnalysis: SkillTriggerAnalysis.analyze(name: item.name, frontmatter: item.frontmatter, markdownBody: item.content),
-                        lastModified: item.lastModified,
-                        files: item.files
+                .menuStyle(.borderlessButton).fixedSize().help("Component actions")
+            }
+            .font(.system(size: 11)).foregroundStyle(.secondary)
+            HStack(alignment: .top, spacing: 14) {
+                ComponentIcon(kind: item.kind, size: 48)
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(item.kind == .command ? "/\(item.name)" : item.name)
+                        .font(.system(size: 25, weight: .bold)).textSelection(.enabled)
+                        // Unbounded wrapping inflates NavigationSplitView's minimum height
+                        // when AppKit measures the title at a narrow proposed width.
+                        .lineLimit(2).truncationMode(.middle)
+                        .help(item.name)
+                    HStack(spacing: 6) {
+                        Circle().fill(item.isEnabled ? Color.green : Color.secondary).frame(width: 6, height: 6)
+                        Text(item.isEnabled ? "Active" : "Disabled")
+                        Text("·")
+                        Text(item.kind.singularName)
+                    }
+                    .font(.system(size: 11)).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+            }
+            HStack(spacing: 10) {
+                Button(action: copyInvocation) {
+                    Label(copiedPrompt ? "Copied" : "Copy prompt", systemImage: copiedPrompt ? "checkmark" : "doc.on.clipboard")
+                }
+                .buttonStyle(.borderedProminent)
+                if item.isEditableDocument {
+                    Button { isEditing = true } label: { Label("Edit", systemImage: "pencil") }
+                        .buttonStyle(.bordered).keyboardShortcut("e", modifiers: .command)
+                }
+                Spacer(minLength: 6)
+                if item.kind != .hook {
+                    Toggle("Enabled", isOn: Binding(
+                        get: { item.isEnabled }, set: { _ in appState.toggleItem(item) }
                     ))
-                } else {
-                    Text("No file bundle")
-                        .foregroundColor(.secondary)
+                    .toggleStyle(.switch).controlSize(.small)
+                    .font(.system(size: 11)).help("Enable or disable this component")
+                }
+            }
+            .controlSize(.regular)
+        }
+        .padding(Theme.pageInset).padding(.bottom, 2)
+    }
+
+    private var overview: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 28) {
+                VStack(alignment: .leading, spacing: 10) {
+                    sectionHeading("About")
+                    Text(item.description.isEmpty ? "This component doesn’t include a description. Open its instructions to learn more." : item.description)
+                        .font(.system(size: 14)).lineSpacing(5).textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                if item.kind == .skill || item.kind == .command {
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack(spacing: 8) {
+                            Image(systemName: item.invocationType == .manual ? "hand.tap" : "bolt")
+                                .foregroundStyle(Theme.accent)
+                            Text(invocationTitle).font(.system(size: 13, weight: .semibold))
+                        }
+                        Text(invocationExplanation).font(.system(size: 12)).foregroundStyle(.secondary).lineSpacing(4)
+                        Divider()
+                        HStack(alignment: .top, spacing: 12) {
+                            Text(invocationPrompt).font(.system(size: 12, design: .monospaced))
+                                .textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+                            Button(action: copyInvocation) {
+                                Image(systemName: copiedPrompt ? "checkmark" : "doc.on.doc")
+                            }
+                            .buttonStyle(.borderless).help("Copy invocation prompt")
+                        }
+                    }
+                    .padding(18)
+                    .background(Theme.secondarySurface, in: RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Theme.subtleBorder))
+                }
+                VStack(alignment: .leading, spacing: 16) {
+                    sectionHeading("At a glance")
+                    propertyRow("Source", value: item.sourceName)
+                    Divider()
+                    propertyRow("Component", value: item.kind.singularName)
+                    if let model = item.model, !model.isEmpty {
+                        Divider()
+                        propertyRow("Model", value: model)
+                    }
+                    if !item.files.isEmpty {
+                        Divider()
+                        propertyRow("Package", value: "\(item.files.count) files and folders")
+                    }
+                    if let origin = item.origin, !origin.isEmpty {
+                        Divider()
+                        propertyRow("Origin", value: origin)
+                    }
+                }
+                if let url = item.fileURL ?? item.directoryURL {
+                    VStack(alignment: .leading, spacing: 10) {
+                        sectionHeading("Location")
+                        Button { ShellLauncher.revealInFinder(url: url) } label: {
+                            HStack(alignment: .top, spacing: 10) {
+                                Image(systemName: "folder").foregroundStyle(Theme.accent)
+                                Text((url.path as NSString).abbreviatingWithTildeInPath)
+                                    .font(.system(size: 11, design: .monospaced))
+                                    .foregroundStyle(.secondary).multilineTextAlignment(.leading)
+                                Spacer(minLength: 0)
+                                Image(systemName: "arrow.up.right").font(.system(size: 10)).foregroundStyle(.secondary)
+                            }
+                        }
+                        .buttonStyle(.plain).help("Reveal in Finder")
+                    }
+                }
+            }
+            .padding(Theme.pageInset).frame(maxWidth: 780, alignment: .leading).frame(maxWidth: .infinity)
+        }
+    }
+
+    private var information: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 28) {
+                metadataSection("Frontmatter", values: item.frontmatter)
+                metadataSection("Configuration", values: item.metadata)
+                if item.frontmatter.isEmpty && item.metadata.isEmpty {
+                    EmptyLibraryView(icon: "info.circle", title: "No additional information",
+                                     message: "This component doesn’t define any metadata.")
+                }
+            }
+            .padding(Theme.pageInset)
+        }
+    }
+
+    @ViewBuilder private func metadataSection(_ title: String, values: [String: String]) -> some View {
+        if !values.isEmpty {
+            VStack(alignment: .leading, spacing: 16) {
+                sectionHeading(title)
+                ForEach(values.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(key).font(.system(size: 11, weight: .medium, design: .monospaced)).foregroundStyle(.secondary)
+                        Text(value).font(.system(size: 13)).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Divider()
                 }
             }
         }
-        .onAppear {
-            loadItemData()
+    }
+
+    private func sectionHeading(_ title: String) -> some View {
+        Text(title).font(.system(size: 13, weight: .semibold))
+    }
+
+    private func propertyRow(_ title: String, value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 24) {
+            Text(title).foregroundStyle(.secondary).frame(width: 90, alignment: .leading)
+            Text(value).textSelection(.enabled)
+            Spacer(minLength: 0)
         }
-        .onChange(of: item.id) { _, _ in
-            loadItemData()
-        }
+        .font(.system(size: 12))
     }
 
     private var availableTabs: [StackDetailTab] {
-        if !item.files.isEmpty && item.files.count > 1 {
-            return StackDetailTab.allCases
-        }
-        return [.editor, .metadata]
+        item.files.isEmpty ? [.overview, .instructions, .metadata] : StackDetailTab.allCases
     }
 
-    private func loadItemData() {
-        editName = item.name
-        editDescription = item.description
-        editContent = item.content
+    private var invocationTitle: String {
+        if item.kind == .command { return "Ready when you call it" }
+        switch item.invocationType {
+        case .auto: return "Available for automatic invocation"
+        case .manual: return "Invoked on request"
+        case .hybrid: return "Automatic or on request"
+        }
     }
 
-    private func performSave() {
-        appState.saveItem(item, name: editName, description: editDescription, frontmatter: item.frontmatter, content: editContent)
-        withAnimation {
-            showSavedNotification = true
+    private var invocationExplanation: String {
+        if item.kind == .command { return "Paste this slash command into your agent’s chat to invoke it." }
+        switch item.invocationType {
+        case .auto: return "Your agent can use this skill when your request matches its description. You can also ask for it directly."
+        case .manual: return "Ask your agent to use this skill explicitly. Its metadata marks it for manual invocation."
+        case .hybrid: return "Your agent may select this skill from context, or you can request it explicitly."
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            withAnimation {
-                showSavedNotification = false
-            }
+    }
+
+    private var invocationPrompt: String {
+        item.kind == .command ? "/\(item.name)" : "Use \(item.name): \(item.description)"
+    }
+
+    private func copyInvocation() {
+        ShellLauncher.copyToClipboard(invocationPrompt)
+        copiedPrompt = true
+        copyResetTask?.cancel()
+        copyResetTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            copiedPrompt = false
         }
     }
 }

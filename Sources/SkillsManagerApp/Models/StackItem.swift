@@ -66,8 +66,12 @@ public struct StackItem: Identifiable, Hashable, Sendable {
         self.files = files
     }
 
-    /// Matches a search query against any part of the item itself,
-    /// explicitly excluding provider information (e.g. sourceName, sourceId, sourceKind, provider paths).
+    /// Shared provider configuration files must not be serialized as Markdown documents.
+    public var isEditableDocument: Bool {
+        [.skill, .agent, .command, .rule].contains(kind) && fileURL?.pathExtension.lowercased() == "md"
+    }
+
+    /// Matches component content, excluding provider names and parent directory paths.
     public func matches(query: String) -> Bool {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return true }
@@ -134,4 +138,3 @@ public struct StackItem: Identifiable, Hashable, Sendable {
         return false
     }
 }
-

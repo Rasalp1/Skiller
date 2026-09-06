@@ -2,134 +2,129 @@ import SwiftUI
 
 public struct SkillListView: View {
     @Bindable var appState: AppState
-
-    public init(appState: AppState) {
-        self.appState = appState
-    }
+    @State private var showingFilters = false
+    @State private var itemToDelete: StackItem?
+    @FocusState private var searchFocused: Bool
+    public init(appState: AppState) { self.appState = appState }
 
     public var body: some View {
+        let visibleItems = appState.filteredItems
         VStack(spacing: 0) {
-            // Header Bar with Count and Sort
-            HStack {
-                Text("\(appState.filteredItems.count) items")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-
-                Spacer()
-
-                Menu {
-                    Picker("Sort By", selection: $appState.sortOrder) {
-                        ForEach(SortOrder.allCases) { sort in
-                            Text(sort.rawValue).tag(sort)
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(appState.selectedKind?.rawValue ?? "All components")
+                        .font(.system(size: 21, weight: .bold))
+                    Spacer()
+                    Text(visibleItems.count, format: .number)
+                        .font(.system(size: 13)).monospacedDigit().foregroundStyle(.secondary)
+                }
+                HStack(spacing: 7) {
+                    Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                    TextField("Search library", text: $appState.searchText)
+                        .textFieldStyle(.plain).focused($searchFocused).accessibilityLabel("Search library")
+                    if !appState.searchText.isEmpty {
+                        Button { appState.searchText = "" } label: {
+                            Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                         }
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.up.arrow.down")
-                            .font(.caption)
-                        Text(appState.sortOrder.rawValue)
-                            .font(.caption)
+                        .buttonStyle(.plain).help("Clear search")
+                    } else {
+                        Text("⌘F").font(.system(size: 11)).foregroundStyle(.tertiary)
                     }
                 }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Theme.sidebarBackground)
-
-            Divider()
-
-            // List of Items
-            if appState.filteredItems.isEmpty {
-                VStack(spacing: 12) {
-                    Spacer()
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 36))
-                        .foregroundColor(.secondary.opacity(0.6))
-                    Text("No items match the filter")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
-                    if !appState.searchText.isEmpty {
-                        Button("Clear Search") {
-                            appState.searchText = ""
+                .font(.system(size: 13)).padding(9)
+                .background(Theme.secondarySurface, in: RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Theme.subtleBorder))
+                HStack {
+                    Menu {
+                        Picker("Sort by", selection: $appState.sortOrder) {
+                            ForEach(SortOrder.allCases) { Text($0.rawValue).tag($0) }
                         }
+                    } label: {
+                        Label(appState.sortOrder.rawValue, systemImage: "arrow.up.arrow.down")
+                            .font(.system(size: 11))
                     }
+                    .menuStyle(.borderlessButton).fixedSize()
                     Spacer()
+                    Button { showingFilters.toggle() } label: {
+                        Label(hasFilters ? "Filtered" : "Filter", systemImage: "line.3.horizontal.decrease.circle")
+                            .font(.system(size: 11)).foregroundStyle(hasFilters ? Theme.accent : .secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showingFilters) { FilterSectionView(appState: appState) }
+                }
+                .foregroundStyle(.secondary)
+            }
+            .padding(20)
+            Divider()
+            if appState.isLoading && appState.items.isEmpty {
+                VStack(spacing: 12) {
+                    ProgressView()
+                    Text("Reading your library…").font(.callout).foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if visibleItems.isEmpty {
+                VStack(spacing: 0) {
+                    EmptyLibraryView(icon: "magnifyingglass", title: "No components found",
+                        message: appState.items.isEmpty ? "Add a workspace or install components in one of your agent sources." : "Try another search or reset your filters to see more of your library.")
+                    if !appState.items.isEmpty {
+                        Button("Reset search and filters") { appState.resetFilters() }
+                            .buttonStyle(.bordered).padding(.bottom, 32)
+                    }
+                }
             } else {
                 List(selection: $appState.selectedItemId) {
-                    ForEach(appState.filteredItems) { item in
-                        SkillRowView(item: item) {
-                            appState.toggleItem(item)
-                        }
-                        .tag(item.id as String?)
-                        .contextMenu {
-                            Button {
-                                appState.toggleItem(item)
-                            } label: {
-                                Label(item.isEnabled ? "Disable Item" : "Enable Item",
-                                      systemImage: item.isEnabled ? "pause.circle" : "play.circle")
-                            }
-
-                            if item.kind == .skill || item.kind == .command {
-                                Button {
-                                    appState.toggleInvocationMode(item)
-                                } label: {
-                                    Label(item.invocationType == .auto ? "Set to Manual Only" : "Set to Auto-Trigger",
-                                          systemImage: item.invocationType == .auto ? "hand.tap" : "bolt.badge.automatic")
+                    ForEach(visibleItems) { item in
+                        SkillRowView(item: item)
+                            .tag(item.id).listRowSeparator(.hidden)
+                            .contextMenu {
+                                if item.kind != .hook {
+                                    Button(item.isEnabled ? "Disable Component" : "Enable Component") { appState.toggleItem(item) }
+                                }
+                                Button("Copy Name") { ShellLauncher.copyToClipboard(item.name) }
+                                if let url = item.fileURL ?? item.directoryURL {
+                                    Button("Reveal in Finder") { ShellLauncher.revealInFinder(url: url) }
+                                    Button("Copy Path") { ShellLauncher.copyToClipboard(url.path) }
+                                }
+                                if item.isEditableDocument {
+                                    Divider()
+                                    Button("Delete Component…", role: .destructive) { itemToDelete = item }
                                 }
                             }
-
-                            Divider()
-
-                            Button {
-                                ShellLauncher.copyToClipboard(item.name)
-                            } label: {
-                                Label("Copy Name", systemImage: "doc.on.clipboard")
-                            }
-
-                            if let u = item.fileURL ?? item.directoryURL {
-                                Button {
-                                    ShellLauncher.copyToClipboard(u.path)
-                                } label: {
-                                    Label("Copy Path", systemImage: "link")
-                                }
-
-                                Divider()
-
-                                Button {
-                                    ShellLauncher.revealInFinder(url: u)
-                                } label: {
-                                    Label("Reveal in Finder", systemImage: "folder")
-                                }
-                            }
-
-                            Divider()
-
-                            Button(role: .destructive) {
-                                appState.deleteItem(item)
-                            } label: {
-                                Label("Delete Item", systemImage: "trash")
-                            }
-                        }
                     }
                 }
-                .listStyle(.inset)
+                .listStyle(.inset).scrollContentBackground(.hidden)
             }
+            Divider()
+            HStack {
+                Text(appState.selectedSourceId.flatMap { id in appState.sources.first { $0.id == id }?.name } ?? "All sources")
+                    .lineLimit(1)
+                Spacer()
+                Text("\(visibleItems.filter(\.isEnabled).count) active").monospacedDigit()
+            }
+            .font(.system(size: 10)).foregroundStyle(.secondary)
+            .padding(.horizontal, 20).padding(.vertical, 12)
         }
-        .searchable(text: $appState.searchText, prompt: "Search skills, agents, commands, rules, MCP, hooks...")
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
-                Button {
-                    Task {
-                        await appState.refreshSkills()
-                    }
-                } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
-                }
+        .background(Theme.canvas)
+        .background {
+            Button("Search Library") { searchFocused = true }
+                .keyboardShortcut("f", modifiers: .command).hidden()
+        }
+        .onChange(of: visibleItems.map(\.id)) { _, ids in
+            if let selected = appState.selectedItemId, ids.contains(selected) { return }
+            appState.selectedItemId = ids.first
+        }
+        .alert("Delete component?", isPresented: Binding(
+            get: { itemToDelete != nil }, set: { if !$0 { itemToDelete = nil } }
+        )) {
+            Button("Cancel", role: .cancel) { itemToDelete = nil }
+            Button("Delete", role: .destructive) {
+                if let item = itemToDelete { appState.deleteItem(item) }
+                itemToDelete = nil
             }
+        } message: {
+            Text("“\(itemToDelete?.name ?? "")” and its files will be permanently deleted. This cannot be undone.")
         }
     }
+
+    private var hasFilters: Bool { appState.statusFilter != .all || appState.triggerFilter != nil }
 }

@@ -3,130 +3,128 @@ import AppKit
 
 public struct MenuBarPopoverView: View {
     @Bindable var appState: AppState
-    @State private var search: String = ""
+    @Environment(\.openWindow) private var openWindow
+    @State private var search = ""
+    @State private var copiedID: String?
+    @State private var copyResetTask: Task<Void, Never>?
+    @State private var launchAtLogin: Bool = false
 
-    public init(appState: AppState) {
-        self.appState = appState
-    }
+    public init(appState: AppState) { self.appState = appState }
 
-    var matchingItems: [StackItem] {
-        if search.isEmpty {
-            return Array(appState.items.prefix(25))
-        }
-        return appState.items.filter { $0.matches(query: search) }
+    private var matchingItems: [StackItem] {
+        Array(appState.items.filter { search.isEmpty || $0.matches(query: search) }
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }.prefix(40))
     }
 
     public var body: some View {
         VStack(spacing: 0) {
-            // Search field
-            HStack(spacing: 8) {
-                MacSearchField(text: $search, placeholder: "Search skills, agents, commands...")
-                    .frame(height: 24)
-
-                if !search.isEmpty {
-                    Button {
-                        search = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
+            HStack(spacing: 10) {
+                Image(systemName: "square.stack.3d.up.fill").foregroundStyle(Theme.accent)
+                Text("Quick access").font(.system(size: 14, weight: .semibold))
+                Spacer()
+                Text("\(appState.activeCount) active").font(.system(size: 11)).foregroundStyle(.secondary)
             }
-            .padding(10)
-            .background(Theme.sidebarBackground)
-
+            .padding(.horizontal, 18).padding(.top, 18).padding(.bottom, 14)
+            MacSearchField(text: $search, placeholder: "Find a component")
+                .frame(height: 28).padding(.horizontal, 16).padding(.bottom, 14)
             Divider()
-
-            // Item list
             if matchingItems.isEmpty {
-                VStack(spacing: 8) {
-                    Spacer()
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 24))
-                        .foregroundColor(.secondary.opacity(0.5))
-                    Text("No matching items")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity, minHeight: 120)
+                EmptyLibraryView(icon: "magnifyingglass", title: "No results",
+                                 message: "Try a different name or search term.")
+                    .frame(height: 210)
             } else {
                 ScrollView {
-                    VStack(spacing: 2) {
+                    LazyVStack(spacing: 0) {
                         ForEach(matchingItems) { item in
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    HStack(spacing: 4) {
-                                        Text(item.name)
-                                            .font(.system(size: 12, weight: .semibold))
-                                        KindBadge(kind: item.kind)
-                                        SourceBadge(kind: item.sourceKind)
-                                    }
-                                    if !item.description.isEmpty {
-                                        Text(item.description)
-                                            .font(.system(size: 10))
-                                            .foregroundColor(.secondary)
-                                            .lineLimit(1)
-                                    }
-                                }
-
-                                Spacer()
-
+                            HStack(spacing: 10) {
                                 Button {
-                                    let prompt = item.kind == .command ? "/\(item.name)" : "Use \(item.name): \(item.description)"
-                                    ShellLauncher.copyToClipboard(prompt)
+                                    appState.resetFilters()
+                                    appState.selectedItemId = item.id
+                                    showLibrary()
                                 } label: {
-                                    Image(systemName: "doc.on.clipboard")
-                                        .font(.system(size: 11))
+                                    HStack(spacing: 10) {
+                                        ComponentIcon(kind: item.kind, size: 30)
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(item.name).font(.system(size: 12, weight: .medium)).lineLimit(1)
+                                            Text("\(item.sourceKind.rawValue) · \(item.kind.singularName)")
+                                                .font(.system(size: 10)).foregroundStyle(.secondary)
+                                        }
+                                        Spacer(minLength: 0)
+                                    }
+                                    .contentShape(Rectangle())
                                 }
-                                .buttonStyle(.plain)
-                                .help("Copy Prompt / Name")
-
-                                Toggle("", isOn: Binding(
-                                    get: { item.isEnabled },
-                                    set: { _ in appState.toggleItem(item) }
-                                ))
-                                .toggleStyle(.switch)
-                                .labelsHidden()
-                                .scaleEffect(0.7)
+                                .buttonStyle(.plain).help("Open component in library")
+                                Button {
+                                    ShellLauncher.copyToClipboard(item.kind == .command ? "/\(item.name)" : "Use \(item.name): \(item.description)")
+                                    copiedID = item.id
+                                    copyResetTask?.cancel()
+                                    copyResetTask = Task { @MainActor in
+                                        try? await Task.sleep(for: .seconds(2))
+                                        guard !Task.isCancelled else { return }
+                                        copiedID = nil
+                                    }
+                                } label: {
+                                    Image(systemName: copiedID == item.id ? "checkmark" : "doc.on.doc")
+                                        .foregroundStyle(copiedID == item.id ? Theme.accent : .secondary)
+                                }
+                                .buttonStyle(.borderless).help("Copy prompt for \(item.name)")
+                                if item.kind != .hook {
+                                    Toggle("Enable \(item.name)", isOn: Binding(
+                                        get: { item.isEnabled }, set: { _ in appState.toggleItem(item) }
+                                    ))
+                                    .labelsHidden().toggleStyle(.switch).controlSize(.mini)
+                                }
                             }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(Color.primary.opacity(0.02))
-                            .cornerRadius(6)
+                            .padding(.horizontal, 16).padding(.vertical, 11)
                         }
                     }
-                    .padding(6)
                 }
-                .frame(maxHeight: 340)
+                .frame(height: 340)
             }
-
             Divider()
-
-            HStack {
-                Text("\(appState.activeCount) active of \(appState.totalItemsCount)")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-
-                Spacer()
-
-                Button("Open App") {
-                    NSApp.activate(ignoringOtherApps: true)
-                    if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
-                        window.makeKeyAndOrderFront(nil)
+            HStack(spacing: 10) {
+                Button {
+                    Task { await appState.refreshSkills() }
+                } label: { Image(systemName: "arrow.clockwise") }
+                    .buttonStyle(.borderless).disabled(appState.isLoading).help("Refresh library")
+                
+                Menu {
+                    Toggle("Launch at Login", isOn: Binding(
+                        get: { launchAtLogin },
+                        set: { newValue in
+                            launchAtLogin = newValue
+                            LaunchAtLoginManager.setEnabled(newValue)
+                        }
+                    ))
+                    Divider()
+                    Button(role: .destructive) {
+                        NSApplication.shared.terminate(nil)
+                    } label: {
+                        Text("Quit Skiller")
                     }
+                } label: {
+                    Image(systemName: "gearshape")
+                        .foregroundStyle(.secondary)
                 }
-                .font(.caption)
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .help("Settings & Options")
+
+                Text("Skiller").font(.system(size: 11)).foregroundStyle(.secondary)
+                Spacer()
+                Button("Open Library", action: showLibrary).buttonStyle(.bordered).controlSize(.small)
             }
-            .padding(8)
-            .background(Theme.sidebarBackground)
+            .padding(14)
         }
-        .frame(width: 380)
-        .onAppear {
-            NSApp.activate(ignoringOtherApps: true)
-        }
+        .frame(width: 380).background(Theme.canvas).tint(Theme.accent)
+        .task { if appState.items.isEmpty { await appState.refreshSkills() } }
+        .onAppear { launchAtLogin = LaunchAtLoginManager.isEnabled }
+        .onDisappear { copyResetTask?.cancel() }
+    }
+
+    private func showLibrary() {
+        NSApp.setActivationPolicy(.regular)
+        openWindow(id: "library")
+        NSApp.activate(ignoringOtherApps: true)
     }
 }
