@@ -17,7 +17,10 @@ let package = Package(
         .executableTarget(
             name: "Skiller",
             dependencies: [],
-            path: "Sources/Skiller"
+            path: "Sources/Skiller",
+            resources: [
+                .process("Resources")
+            ]
         ),
         .testTarget(
             name: "SkillerTests",

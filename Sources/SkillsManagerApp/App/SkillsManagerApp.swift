@@ -1,8 +1,24 @@
 import SwiftUI
+import AppKit
 
 @main
 struct Skiller: App {
     @State private var appState = AppState()
+
+    init() {
+        setupAppIcon()
+    }
+
+    private func setupAppIcon() {
+        // Attempt loading from SPM module bundle or main bundle
+        if let iconURL = Bundle.module.url(forResource: "AppIcon", withExtension: "png"),
+           let iconImage = NSImage(contentsOf: iconURL) {
+            NSApplication.shared.applicationIconImage = iconImage
+        } else if let fallbackURL = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
+                  let iconImage = NSImage(contentsOf: fallbackURL) {
+            NSApplication.shared.applicationIconImage = iconImage
+        }
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -28,7 +44,7 @@ struct Skiller: App {
             }
         }
 
-        MenuBarExtra("Skills", systemImage: "sparkles") {
+        MenuBarExtra("Skills", systemImage: "fountainpen.nib") {
             MenuBarPopoverView(appState: appState)
         }
         .menuBarExtraStyle(.window)

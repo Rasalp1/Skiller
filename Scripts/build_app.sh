@@ -23,6 +23,11 @@ BIN_PATH="$(swift build -c release --show-bin-path)/Skiller"
 cp "$BIN_PATH" "$MACOS_DIR/$APP_NAME"
 chmod +x "$MACOS_DIR/$APP_NAME"
 
+# Copy Icon
+if [ -f "$DIR/Sources/Skiller/Resources/AppIcon.icns" ]; then
+    cp "$DIR/Sources/Skiller/Resources/AppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
+fi
+
 # Create Info.plist
 cat <<EOF > "$CONTENTS_DIR/Info.plist"
 <?xml version="1.0" encoding="UTF-8"?>
@@ -35,6 +40,8 @@ cat <<EOF > "$CONTENTS_DIR/Info.plist"
     <string>com.skillsmanager.app</string>
     <key>CFBundleName</key>
     <string>$APP_NAME</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
