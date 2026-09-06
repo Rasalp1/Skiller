@@ -2,10 +2,14 @@
 import Cocoa
 
 // ── 1. SVG Source ─────────────────────────────────────────────────────
-// Official FontAwesome 6 'pen-fancy' fountain pen vector from Iconify
+// Hugeicons 'language-skill' vector requested by user
 let svgString = """
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <path fill="black" d="M373.5 27.1C388.5 9.9 410.2 0 433 0c43.6 0 79 35.4 79 79c0 22.8-9.9 44.6-27.1 59.6L277.7 319l-10.3-10.3l-64-64l-10.4-10.4zM170.3 256.9l10.4 10.4l64 64l10.4 10.4l-19.2 83.4c-3.9 17.1-16.9 30.7-33.8 35.4L24.3 510.3l95.4-95.4c2.6.7 5.4 1.1 8.3 1.1c17.7 0 32-14.3 32-32s-14.3-32-32-32s-32 14.3-32 32c0 2.9.4 5.6 1.1 8.3L1.7 487.6L51.5 310c4.7-16.9 18.3-29.9 35.4-33.8l83.4-19.2z"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 24 24">
+	<path d="M0 0h24v24H0z" fill="none" />
+	<g fill="none" stroke="black" stroke-width="1.5">
+		<path stroke-linecap="round" stroke-linejoin="round" d="M2 12c0 1.052.18 2.062.512 3m10.502-6h8.488M11 15H2.512m18.99-6a9 9 0 0 0-8.488-6c1.6 0 2.909 3.762 2.995 8.5M21.502 9c.278.789.45 1.628.498 2.5M2.512 15A9 9 0 0 0 11 21c-1.544 0-2.816-3.5-2.982-8" />
+		<path d="M2 5.297C2 4.2 2 3.65 2.187 3.224c.2-.452.542-.815.968-1.025C3.557 2 4.075 2 5.11 2H6c1.886 0 2.828 0 3.414.62C10 3.243 10 4.24 10 6.24v2.259c0 .871 0 1.307-.264 1.457s-.606-.092-1.29-.576l-.105-.073c-.5-.354-.75-.53-1.034-.621c-.283-.091-.584-.091-1.185-.091h-1.01c-1.037 0-1.555 0-1.957-.199a2.06 2.06 0 0 1-.968-1.025C2 6.945 2 6.396 2 5.297Zm20 12c0-1.098 0-1.647-.187-2.073a2.06 2.06 0 0 0-.968-1.025C20.443 14 19.925 14 18.89 14H18c-1.886 0-2.828 0-3.414.62C14 15.243 14 16.24 14 18.24v2.259c0 .871 0 1.307.264 1.457s.606-.092 1.29-.576l.105-.073c.5-.354.75-.53 1.034-.621c.283-.091.584-.091 1.185-.091h1.01c1.037 0 1.555 0 1.957-.199c.426-.21.769-.573.968-1.025c.187-.426.187-.975.187-2.074Z" />
+	</g>
 </svg>
 """
 
@@ -61,6 +65,12 @@ let pngPath = "\(resourcesDir)/AppIcon.png"
 try! masterPng.write(to: URL(fileURLWithPath: pngPath))
 print("✅ Saved AppIcon.png (1024×1024, 72 DPI, transparent)")
 
+// Save MenuBarIcon.png (36×36 px @2x for 18pt menu bar)
+let menuBarPng = renderTransparentPNG(size: 36)
+let menuBarPath = "\(resourcesDir)/MenuBarIcon.png"
+try! menuBarPng.write(to: URL(fileURLWithPath: menuBarPath))
+print("✅ Saved MenuBarIcon.png (36×36 px @2x for 18pt menu bar)")
+
 // Verify: check corner pixel is fully transparent
 let verifyImg = NSImage(data: masterPng)!
 if let verifyRep = NSBitmapImageRep(data: verifyImg.tiffRepresentation!) {
@@ -69,8 +79,9 @@ if let verifyRep = NSBitmapImageRep(data: verifyImg.tiffRepresentation!) {
     print("   Corner alpha: \(cornerAlpha), Center alpha: \(centerAlpha)")
 }
 
-// Save pen.svg
+// Save pen.svg and icon.svg
 try! svgString.write(toFile: "\(resourcesDir)/pen.svg", atomically: true, encoding: .utf8)
+try! svgString.write(toFile: "\(resourcesDir)/icon.svg", atomically: true, encoding: .utf8)
 
 // ── 3. Create .iconset with all sizes ─────────────────────────────────
 let iconsetDir = "/tmp/Skiller.iconset"

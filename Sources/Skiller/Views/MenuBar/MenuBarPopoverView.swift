@@ -19,7 +19,6 @@ public struct MenuBarPopoverView: View {
     public var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
-                Image(systemName: "square.stack.3d.up.fill").foregroundStyle(Theme.accent)
                 Text("Quick access").font(.system(size: 14, weight: .semibold))
                 Spacer()
                 Text("\(appState.activeCount) active").font(.system(size: 11)).foregroundStyle(.secondary)
