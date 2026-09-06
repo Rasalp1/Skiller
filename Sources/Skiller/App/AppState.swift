@@ -43,7 +43,8 @@ public final class AppState {
     private let stackManagerService = StackManagerService()
     private let watcherService = FileWatcherService()
 
-    private let workspaceDefaultsKey = "SkillsManager.CustomWorkspaces"
+    private let workspaceDefaultsKey = "Skiller.CustomWorkspaces"
+    private let legacyWorkspaceDefaultsKey = "SkillsManager.CustomWorkspaces"
 
     public init() {
         loadSavedWorkspaces()
@@ -229,6 +230,8 @@ public final class AppState {
     private func loadSavedWorkspaces() {
         if let saved = UserDefaults.standard.stringArray(forKey: workspaceDefaultsKey) {
             self.customWorkspacePaths = saved
+        } else if let legacy = UserDefaults.standard.stringArray(forKey: legacyWorkspaceDefaultsKey) {
+            self.customWorkspacePaths = legacy
         }
     }
 

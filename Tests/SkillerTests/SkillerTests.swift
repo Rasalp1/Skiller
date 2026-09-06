@@ -1,9 +1,9 @@
 import Testing
 import Foundation
-@testable import SkillsManagerApp
+@testable import Skiller
 
-@Suite("Skills Manager Core Tests")
-struct SkillsManagerAppTests {
+@Suite("Skiller Core Tests")
+struct SkillerTests {
 
     @Test("Test Frontmatter Parsing and Serializing")
     func testFrontmatter() {

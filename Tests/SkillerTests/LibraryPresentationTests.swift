@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import SkillsManagerApp
+@testable import Skiller
 
 @Suite("Library presentation")
 struct LibraryPresentationTests {

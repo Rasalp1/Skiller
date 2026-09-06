@@ -3,7 +3,7 @@ import CoreServices
 
 public final class FileWatcherService: @unchecked Sendable {
     private var streamRef: FSEventStreamRef?
-    private let queue = DispatchQueue(label: "com.skillsmanager.filewatcher", qos: .background)
+    private let queue = DispatchQueue(label: "com.skiller.filewatcher", qos: .background)
     private var onChange: (@Sendable () -> Void)?
     private var debounceTimer: DispatchWorkItem?
 

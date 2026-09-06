@@ -116,7 +116,7 @@ public struct MenuBarPopoverView: View {
             }
             .padding(14)
         }
-        .frame(width: 380).background(Theme.canvas).tint(Theme.accent)
+        .frame(width: 380).tint(Theme.accent)
         .task { if appState.items.isEmpty { await appState.refreshSkills() } }
         .onAppear { launchAtLogin = LaunchAtLoginManager.isEnabled }
         .onDisappear { copyResetTask?.cancel() }

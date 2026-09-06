@@ -3,8 +3,13 @@ import AppKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
-        setupAppIcon()
-        
+        // Set the app icon from the ICNS in our bundle so the Dock tile
+        // renders the transparent silhouette (no squircle added).
+        if let icnsURL = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
+           let icon = NSImage(contentsOf: icnsURL) {
+            NSApplication.shared.applicationIconImage = icon
+        }
+
         // Keep app quietly in menu bar on startup unless explicitly opened
         DispatchQueue.main.async {
             for window in NSApplication.shared.windows where window.canBecomeMain {
@@ -27,24 +32,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
     }
-
-    @MainActor
-    private func setupAppIcon() {
-        if let iconURL = Bundle.module.url(forResource: "AppIcon", withExtension: "png"),
-           let iconImage = NSImage(contentsOf: iconURL) {
-            NSApplication.shared.applicationIconImage = iconImage
-        } else if let mainPngURL = Bundle.main.url(forResource: "AppIcon", withExtension: "png"),
-                  let iconImage = NSImage(contentsOf: mainPngURL) {
-            NSApplication.shared.applicationIconImage = iconImage
-        } else if let fallbackURL = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
-                  let iconImage = NSImage(contentsOf: fallbackURL) {
-            NSApplication.shared.applicationIconImage = iconImage
-        }
-    }
 }
 
 @main
-struct SkillsManagerApp: App {
+struct SkillerApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var appState = AppState()
 

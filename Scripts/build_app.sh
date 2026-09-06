@@ -4,10 +4,10 @@ set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 cd "$DIR"
 
-echo "🔨 Building SkillsManagerApp in release mode..."
+echo "🔨 Building Skiller in release mode..."
 swift build -c release
 
-APP_NAME="SkillsManager"
+APP_NAME="Skiller"
 DIST_DIR="$DIR/dist"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 CONTENTS_DIR="$APP_BUNDLE/Contents"
@@ -18,22 +18,28 @@ echo "📦 Creating macOS App Bundle at $APP_BUNDLE..."
 mkdir -p "$MACOS_DIR"
 mkdir -p "$RESOURCES_DIR"
 
-BIN_PATH="$(swift build -c release --show-bin-path)/SkillsManagerApp"
+BIN_PATH="$(swift build -c release --show-bin-path)/Skiller"
 cp "$BIN_PATH" "$MACOS_DIR/$APP_NAME"
 chmod +x "$MACOS_DIR/$APP_NAME"
 
 # SwiftPM resolves Bundle.module relative to the application bundle.
-RESOURCE_BUNDLE="$(swift build -c release --show-bin-path)/SkillsManagerApp_SkillsManagerApp.bundle"
-ditto "$RESOURCE_BUNDLE" "$APP_BUNDLE/SkillsManagerApp_SkillsManagerApp.bundle"
+RESOURCE_BUNDLE="$(swift build -c release --show-bin-path)/Skiller_Skiller.bundle"
+if [ -d "$RESOURCE_BUNDLE" ]; then
+    ditto "$RESOURCE_BUNDLE" "$APP_BUNDLE/Skiller_Skiller.bundle"
+fi
 
 # Copy Icon
-if [ -f "$DIR/Sources/SkillsManagerApp/Resources/AppIcon.icns" ]; then
-    cp "$DIR/Sources/SkillsManagerApp/Resources/AppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
-    cp "$DIR/Sources/SkillsManagerApp/Resources/AppIcon.icns" "$APP_BUNDLE/SkillsManagerApp_SkillsManagerApp.bundle/AppIcon.icns"
+if [ -f "$DIR/Sources/Skiller/Resources/AppIcon.icns" ]; then
+    cp "$DIR/Sources/Skiller/Resources/AppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
+    if [ -d "$APP_BUNDLE/Skiller_Skiller.bundle" ]; then
+        cp "$DIR/Sources/Skiller/Resources/AppIcon.icns" "$APP_BUNDLE/Skiller_Skiller.bundle/AppIcon.icns"
+    fi
 fi
-if [ -f "$DIR/Sources/SkillsManagerApp/Resources/AppIcon.png" ]; then
-    cp "$DIR/Sources/SkillsManagerApp/Resources/AppIcon.png" "$RESOURCES_DIR/AppIcon.png"
-    cp "$DIR/Sources/SkillsManagerApp/Resources/AppIcon.png" "$APP_BUNDLE/SkillsManagerApp_SkillsManagerApp.bundle/AppIcon.png"
+if [ -f "$DIR/Sources/Skiller/Resources/AppIcon.png" ]; then
+    cp "$DIR/Sources/Skiller/Resources/AppIcon.png" "$RESOURCES_DIR/AppIcon.png"
+    if [ -d "$APP_BUNDLE/Skiller_Skiller.bundle" ]; then
+        cp "$DIR/Sources/Skiller/Resources/AppIcon.png" "$APP_BUNDLE/Skiller_Skiller.bundle/AppIcon.png"
+    fi
 fi
 
 # Create Info.plist
@@ -45,7 +51,7 @@ cat <<EOF > "$CONTENTS_DIR/Info.plist"
     <key>CFBundleExecutable</key>
     <string>$APP_NAME</string>
     <key>CFBundleIdentifier</key>
-    <string>com.skillsmanager.app</string>
+    <string>com.skiller.app</string>
     <key>CFBundleName</key>
     <string>Skiller</string>
     <key>CFBundleDisplayName</key>
@@ -69,4 +75,20 @@ cat <<EOF > "$CONTENTS_DIR/Info.plist"
 EOF
 
 echo "✅ Successfully built $APP_BUNDLE!"
+
+# Set the Finder kHasCustomIcon flag via NSWorkspace.setIcon
+# This is the critical step that makes the transparent icon float without a squircle.
+echo "🎨 Setting Finder custom icon flag on $APP_BUNDLE..."
+swift -e "
+import Cocoa
+let appPath = \"$APP_BUNDLE\"
+let icnsPath = appPath + \"/Contents/Resources/AppIcon.icns\"
+if let img = NSImage(contentsOfFile: icnsPath) {
+    let ok = NSWorkspace.shared.setIcon(img, forFile: appPath, options: [])
+    print(ok ? \"   ✅ kHasCustomIcon flag set\" : \"   ❌ Failed to set icon\")
+} else {
+    print(\"   ❌ Could not load icns\")
+}
+"
+
 echo "🚀 You can launch it using: open \"$APP_BUNDLE\""

@@ -136,9 +136,9 @@ Skiller/
 │   ├── generate_icon.py             # App icon generator script
 │   └── generate_icon.swift          # Swift icon synthesis utility
 ├── Sources/
-│   └── SkillsManagerApp/
+│   └── Skiller/
 │       ├── App/
-│       │   ├── SkillsManagerApp.swift   # Main app entrypoint & MenuBarExtra
+│       │   ├── SkillerApp.swift         # Main app entrypoint & MenuBarExtra
 │       │   └── AppState.swift           # Central observable application state
 │       ├── Models/
 │       │   ├── ComponentKind.swift      # Enum: Skill, Agent, Command, Rule, MCP, Hook
@@ -157,7 +157,8 @@ Skiller/
 │       │   └── Theme.swift              # Typography, layout tokens & color palette
 │       ├── Resources/
 │       │   ├── AppIcon.icns             # High-DPI macOS application icon
-│       │   └── AppIcon.png              # Standard PNG application icon
+│       │   ├── AppIcon.png              # Standard PNG application icon
+│       │   └── pen.svg                  # Vector source for app icon
 │       └── Views/
 │           ├── MainView.swift           # Three-column NavigationSplitView layout
 │           ├── Sidebar/                 # Sources & Category filtering
@@ -166,8 +167,8 @@ Skiller/
 │           ├── MenuBar/                 # MenuBarPopoverView quick-access
 │           └── Components/              # Custom reusable Mac controls & badges
 └── Tests/
-    └── SkillsManagerAppTests/       # Comprehensive test suites:
-        ├── SkillsManagerAppTests.swift  # Core parsing & trigger heuristics tests
+    └── SkillerTests/                # Comprehensive test suites:
+        ├── SkillerTests.swift           # Core parsing & trigger heuristics tests
         ├── LibraryPresentationTests.swift # Markdown rendering & presentation tests
         ├── LibraryLayoutTests.swift      # Window sizing & layout constraints
         └── LibraryVisualChecks.swift    # View lifecycle visual checks
@@ -190,7 +191,7 @@ git clone https://github.com/Rasalp1/Skiller.git
 cd Skiller
 
 # Run in development mode
-swift run SkillsManagerApp
+swift run Skiller
 ```
 
 ### 2. Build Standalone Release `.app` Bundle
@@ -203,10 +204,10 @@ chmod +x Scripts/build_app.sh
 ./Scripts/build_app.sh
 
 # Open the compiled application
-open dist/SkillsManager.app
+open dist/Skiller.app
 ```
 
-You can drag `dist/SkillsManager.app` directly into your `/Applications` directory.
+You can drag `dist/Skiller.app` directly into your `/Applications` directory.
 
 ---
 

@@ -2,30 +2,30 @@
 import PackageDescription
 
 let package = Package(
-    name: "SkillsManagerApp",
+    name: "Skiller",
     platforms: [
         .macOS(.v14)
     ],
     products: [
         .executable(
-            name: "SkillsManagerApp",
-            targets: ["SkillsManagerApp"]
+            name: "Skiller",
+            targets: ["Skiller"]
         )
     ],
     dependencies: [],
     targets: [
         .executableTarget(
-            name: "SkillsManagerApp",
+            name: "Skiller",
             dependencies: [],
-            path: "Sources/SkillsManagerApp",
+            path: "Sources/Skiller",
             resources: [
                 .process("Resources")
             ]
         ),
         .testTarget(
-            name: "SkillsManagerAppTests",
-            dependencies: ["SkillsManagerApp"],
-            path: "Tests/SkillsManagerAppTests"
+            name: "SkillerTests",
+            dependencies: ["Skiller"],
+            path: "Tests/SkillerTests"
         )
     ]
 )

@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 import Testing
-@testable import SkillsManagerApp
+@testable import Skiller
 
 @Suite("Library layout", .serialized)
 struct LibraryLayoutTests {
