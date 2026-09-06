@@ -138,7 +138,7 @@ Skiller/
 ├── Sources/
 │   └── Skiller/
 │       ├── App/
-│       │   ├── Skiller.swift   # Main app entrypoint & MenuBarExtra
+│       │   ├── SkillerApp.swift         # Main app entrypoint & MenuBarExtra
 │       │   └── AppState.swift           # Central observable application state
 │       ├── Models/
 │       │   ├── ComponentKind.swift      # Enum: Skill, Agent, Command, Rule, MCP, Hook
@@ -157,7 +157,8 @@ Skiller/
 │       │   └── Theme.swift              # Typography, layout tokens & color palette
 │       ├── Resources/
 │       │   ├── AppIcon.icns             # High-DPI macOS application icon
-│       │   └── AppIcon.png              # Standard PNG application icon
+│       │   ├── AppIcon.png              # Standard PNG application icon
+│       │   └── pen.svg                  # Vector source for app icon
 │       └── Views/
 │           ├── MainView.swift           # Three-column NavigationSplitView layout
 │           ├── Sidebar/                 # Sources & Category filtering
@@ -166,8 +167,8 @@ Skiller/
 │           ├── MenuBar/                 # MenuBarPopoverView quick-access
 │           └── Components/              # Custom reusable Mac controls & badges
 └── Tests/
-    └── SkillerTests/       # Comprehensive test suites:
-        ├── SkillerTests.swift  # Core parsing & trigger heuristics tests
+    └── SkillerTests/                # Comprehensive test suites:
+        ├── SkillerTests.swift           # Core parsing & trigger heuristics tests
         ├── LibraryPresentationTests.swift # Markdown rendering & presentation tests
         ├── LibraryLayoutTests.swift      # Window sizing & layout constraints
         └── LibraryVisualChecks.swift    # View lifecycle visual checks

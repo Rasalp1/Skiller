@@ -9,7 +9,7 @@ struct LibraryVisualChecks {
     @Test("Render library at standard and minimum sizes")
     @MainActor
     func renderLibrary() throws {
-        guard let output = ProcessInfo.processInfo.environment["SKILLSALLEIN_SNAPSHOT_DIR"] else { return }
+        guard let output = ProcessInfo.processInfo.environment["SKILLER_SNAPSHOT_DIR"] ?? ProcessInfo.processInfo.environment["SKILLSALLEIN_SNAPSHOT_DIR"] else { return }
         let app = NSApplication.shared
         app.setActivationPolicy(.prohibited)
         let state = AppState()

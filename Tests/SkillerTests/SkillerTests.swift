@@ -2,7 +2,7 @@ import Testing
 import Foundation
 @testable import Skiller
 
-@Suite("Skills Manager Core Tests")
+@Suite("Skiller Core Tests")
 struct SkillerTests {
 
     @Test("Test Frontmatter Parsing and Serializing")
