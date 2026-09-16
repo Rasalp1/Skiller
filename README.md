@@ -12,6 +12,7 @@
 [![Antigravity](https://img.shields.io/badge/Google-Antigravity%20%2F%20Gemini-8E75FF?style=flat-square&logo=google)](https://deepmind.google)
 [![Architecture](https://img.shields.io/badge/Arch-Universal%20(Apple%20Silicon%20%2F%20Intel)-6B7280?style=flat-square)](#architecture--tech-stack)
 [![FSEvents](https://img.shields.io/badge/Sync-FSEvents%20Live%20Watcher-teal?style=flat-square)](https://developer.apple.com/documentation/coreservices/file_system_events)
+[![CI](https://github.com/Rasalp1/Skiller/actions/workflows/ci.yml/badge.svg)](https://github.com/Rasalp1/Skiller/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
 ---
@@ -262,7 +263,7 @@ Run the automated test suite covering YAML parsing, trigger classification, pres
 swift test
 ```
 
-All 8 tests across 4 suites run in parallel and pass with 100% strict concurrency safety.
+The suite currently runs 7 tests across 3 suites with Swift's strict concurrency checks enabled.
 
 ---
 
