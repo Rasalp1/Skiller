@@ -14,7 +14,12 @@ public enum ShellLauncher {
     }
 
     public static func openInTerminal(directoryURL: URL) {
-        let script = "tell application \"Terminal\" to do script \"cd '\(directoryURL.path)'\""
+        // Escape backslashes and double quotes so the path can't break out of the
+        // AppleScript string literal and inject arbitrary Terminal commands.
+        let escapedPath = directoryURL.path
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        let script = "tell application \"Terminal\" to do script \"cd \\\"\(escapedPath)\\\"\""
         var error: NSDictionary?
         if let appleScript = NSAppleScript(source: script) {
             appleScript.executeAndReturnError(&error)
