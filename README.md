@@ -277,6 +277,8 @@ The suite currently runs 7 tests across 3 suites with Swift's strict concurrency
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Bundled icon attribution and license details are documented in
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ---
 
