@@ -2,7 +2,8 @@
 import Cocoa
 
 // ── 1. SVG Source ─────────────────────────────────────────────────────
-// Hugeicons 'language-skill' vector requested by user
+// Adapted from Hugeicons' free "language-skill" Stroke Rounded icon.
+// See THIRD-PARTY-NOTICES.md; the free icon is MIT licensed.
 let svgString = """
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 24 24">
 	<path d="M0 0h24v24H0z" fill="none" />
