@@ -101,4 +101,39 @@ struct SkillerTests {
         #expect(!item.matches(query: "claude"))
         #expect(!item.matches(query: "codex"))
     }
+
+    @Test("MCP discovery redacts environment values")
+    func testMCPEnvironmentRedaction() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("skiller-mcp-" + UUID().uuidString, isDirectory: true)
+        let skills = root.appendingPathComponent("skills", isDirectory: true)
+        try FileManager.default.createDirectory(at: skills, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let mcp = root.appendingPathComponent("mcp.json")
+        let config = #"{"mcpServers":{"private":{"command":"node","env":{"API_KEY":"super-secret","REGION":"eu"}}}}"#
+        try config.data(using: .utf8)!.write(to: mcp)
+
+        let source = SkillSource(
+            id: "test-source",
+            name: "Test",
+            kind: .workspace,
+            activeDirectoryURL: skills,
+            disabledDirectoryURL: root.appendingPathComponent("skills-disabled")
+        )
+        let items = await StackDiscoveryService().discoverAll(in: [source])
+        let server = items.first { $0.kind == .mcpServer }
+
+        #expect(server?.content.contains("super-secret") == false)
+        #expect(server?.content.contains("<redacted>") == true)
+        #expect(server?.metadata["envKeys"]?.contains("API_KEY") == true)
+    }
+
+    @Test("Skill directory names reject traversal")
+    func testSkillDirectoryNameValidation() {
+        #expect(SkillManagerService.isSafeDirectoryName("review-helper"))
+        #expect(!SkillManagerService.isSafeDirectoryName("../escape"))
+        #expect(!SkillManagerService.isSafeDirectoryName("nested/name"))
+        #expect(!SkillManagerService.isSafeDirectoryName(".."))
+    }
 }

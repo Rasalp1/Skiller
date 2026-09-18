@@ -4,6 +4,7 @@ public enum SkillManagerError: LocalizedError, Sendable {
     case directoryNotFound(String)
     case destinationAlreadyExists(String)
     case fileWriteFailed(String)
+    case invalidDirectoryName(String)
     case sourceNotFound(String)
 
     public var errorDescription: String? {
@@ -11,6 +12,7 @@ public enum SkillManagerError: LocalizedError, Sendable {
         case .directoryNotFound(let msg): return "Directory not found: \(msg)"
         case .destinationAlreadyExists(let msg): return "Destination already exists: \(msg)"
         case .fileWriteFailed(let msg): return "Failed to write file: \(msg)"
+        case .invalidDirectoryName(let msg): return "Invalid skill directory name: \(msg)"
         case .sourceNotFound(let msg): return "Source not found: \(msg)"
         }
     }
@@ -21,6 +23,23 @@ public final class SkillManagerService: Sendable {
 
     public init() {}
 
+    public static func isSafeDirectoryName(_ value: String) -> Bool {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != ".", trimmed != ".." else { return false }
+        return !trimmed.contains(where: { character in
+            character == "/" || character == "\\" || character.isNewline ||
+                character.unicodeScalars.contains { $0.value < 0x20 || $0.value == 0x7F }
+        })
+    }
+
+    private static func validatedDirectoryName(_ value: String) throws -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard isSafeDirectoryName(trimmed) else {
+            throw SkillManagerError.invalidDirectoryName(value)
+        }
+        return trimmed
+    }
+
     public func toggleSkill(skill: Skill, source: SkillSource) throws -> Skill {
         let currentURL = skill.directoryURL
         let targetParentURL = skill.isEnabled ? source.disabledDirectoryURL : source.activeDirectoryURL
@@ -30,11 +49,12 @@ public final class SkillManagerService: Sendable {
             try fileManager.createDirectory(at: targetParentURL, withIntermediateDirectories: true)
         }
 
-        let destinationURL = targetParentURL.appendingPathComponent(skill.directoryName)
+        let directoryName = try Self.validatedDirectoryName(skill.directoryName)
+        let destinationURL = targetParentURL.appendingPathComponent(directoryName)
 
         if fileManager.fileExists(atPath: destinationURL.path) {
             // If already exists at destination, generate a backup timestamp or error
-            let backupName = "\(skill.directoryName)-\(Int(Date().timeIntervalSince1970))"
+            let backupName = "\(directoryName)-\(Int(Date().timeIntervalSince1970))"
             let altURL = targetParentURL.appendingPathComponent(backupName)
             try fileManager.moveItem(at: currentURL, to: altURL)
             guard let updated = Skill.load(from: altURL, source: source, isEnabled: !skill.isEnabled) else {
@@ -83,7 +103,7 @@ public final class SkillManagerService: Sendable {
         to targetSource: SkillSource,
         as newName: String? = nil
     ) throws -> Skill {
-        let targetDirectoryName = newName ?? skill.directoryName
+        let targetDirectoryName = try Self.validatedDirectoryName(newName ?? skill.directoryName)
         let targetDir = targetSource.activeDirectoryURL.appendingPathComponent(targetDirectoryName)
 
         if !fileManager.fileExists(atPath: targetSource.activeDirectoryURL.path) {
@@ -100,7 +120,7 @@ public final class SkillManagerService: Sendable {
         let skillMdURL = targetDir.appendingPathComponent("SKILL.md")
         if fileManager.fileExists(atPath: skillMdURL.path), let content = try? String(contentsOf: skillMdURL, encoding: .utf8) {
             var parsed = FrontmatterParser.parse(content)
-            if let customName = newName {
+            if let customName = newName?.trimmingCharacters(in: .whitespacesAndNewlines) {
                 parsed.attributes["name"] = customName
                 let serialized = FrontmatterParser.serialize(frontmatter: parsed.attributes, body: parsed.body)
                 try? serialized.write(to: skillMdURL, atomically: true, encoding: .utf8)
@@ -120,7 +140,9 @@ public final class SkillManagerService: Sendable {
         origin: String = "Custom",
         initialBody: String? = nil
     ) throws -> Skill {
-        let dirName = name.lowercased().replacingOccurrences(of: " ", with: "-")
+        let dirName = try Self.validatedDirectoryName(
+            name.lowercased().replacingOccurrences(of: " ", with: "-")
+        )
         let targetDir = source.activeDirectoryURL.appendingPathComponent(dirName)
 
         if !fileManager.fileExists(atPath: source.activeDirectoryURL.path) {

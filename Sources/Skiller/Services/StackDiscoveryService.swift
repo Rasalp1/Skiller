@@ -172,7 +172,11 @@ public final class StackDiscoveryService: Sendable {
                     meta["envKeys"] = env.keys.joined(separator: ", ")
                 }
 
-                let contentFormatted = (try? String(data: JSONSerialization.data(withJSONObject: config, options: .prettyPrinted), encoding: .utf8)) ?? "{}"
+                var safeConfig = config
+                if let env = config["env"] as? [String: Any] {
+                    safeConfig["env"] = Dictionary(uniqueKeysWithValues: env.keys.map { ($0, "<redacted>") })
+                }
+                let contentFormatted = (try? String(data: JSONSerialization.data(withJSONObject: safeConfig, options: .prettyPrinted), encoding: .utf8)) ?? "{}"
 
                 list.append(StackItem(
                     id: "\(source.id):mcp:\(serverName)",
